@@ -1,0 +1,552 @@
+% =================================================================
+\subsection{LTC3855: 12V to 0.95V@40A}
+% =================================================================
+\label{sec:LTC3855}
+
+The Altera Stratix IV GT series of FPGAs uses a 0.95V core voltage,
+with a voltage tolerance of $\pm$30mV. The EP4S100G5F45I1 device 
+can generate load current steps of up to 40A. The following
+sections contain the design of a dual-phase supply for conversion
+of 12V to 0.95V@40A. The design analyses the requirements of a
+single-phase for conversion of 12V to 0.95V@20A, and then
+converts that to a dual-phase design. A comparison of the
+single-phase to dual-phase design shows the advantages of
+multi-phase controllers.
+
+% -----------------------------------------------------------------
+\subsubsection{Component Selection}
+% -----------------------------------------------------------------
+
+Power supply requirements;
+%
+\begin{itemize}
+\item Input supply voltage, $V_{\rm IN} = 12$V
+\item Output supply voltage, $V_{\rm OUT} = 0.95$V
+\item Number of phases, $N_{\rm PH} = 2$
+\item Output supply current (total), $I_{\rm OUT(TOTAL)} = 40$A
+\item Output supply current (per phase), $I_{\rm OUT} = 20$A
+\item Output supply voltage ripple, $\Delta V_{\rm OUT} = \pm 30$mV ($\pm3$\%)
+\item Controller switching frequency, $f_{\rm SW} = 750$kHz
+\end{itemize}
+%
+The controller components are selected based on the data
+sheet procedure (see p11~\cite{Linear_LTC3855_2009});
+%
+\begin{enumerate}
+\item Select the {\em target} current-sense resistor (implemented
+via inductor DCR sensing).
+
+\begin{equation}
+R_{\rm SENSE} = 0.8\cdot\frac{V_{\rm MAX}}{(I_{\rm OUT} + \Delta I_{\rm OUT}/2)} =
+0.8\cdot\frac{50\text{mV}}{22.7\text{A}} = 1.76\text{m}\Omega 
+\end{equation}
+%
+where the 0.8 scale factor accounts for component tolerances (per the LTC3851A design),
+and the per phase maximum current, $I_{\rm MAX} = I_{\rm OUT} + \Delta I_{\rm OUT}/2 = 22\text{A} + 5.3\text{A}/2 \approx 22.7$A, is calculated shortly.
+%
+\item Select $R_{\rm FREQ}$ to select the controller operating
+frequency.
+
+$R_{\rm FREQ} = 180\text{k}\Omega$ selects a switching frequency of
+750kHz (the LTspice model was used to confirm this selection).
+Because this controller is used for high load currents, with a 
+tight output voltage tolerance, the open-loop bandwidth will need
+to be high (60kHz or higher). Using the rule-of-thumb that the cross-over
+is $f_{\rm SW}/10$, the switching frequency should be over 600kHz.
+The higher switching frequency will result
+in lower inductor ripple current, but higher MOSFET switching losses.
+
+\item Inductor selection.
+
+The {\em nominal} inductor value is determined based on a ripple current of
+30\% of the maximum per phase output current, i.e., 
+$\Delta I_{\rm OUT} = 0.3I_{\rm OUT} = 6.7$A. The inductor value 
+is then
+%
+\begin{equation}
+L = \frac{V_{\rm OUT}}{f_{\rm SW}\Delta I_{\rm OUT}}\left(
+1 - \frac{V_{\rm OUT}}{V_{\rm IN}}\right) =
+\frac{0.95}{750\text{k}\times6.7}\left(
+1 - \frac{0.95}{12}\right) = 0.17\mu\text{H}
+\end{equation}
+%
+A review of Vishay/Dale IHLP series inductors showed that the nearest
+value is the IHLP-3232DZ-01 $0.22\mu\text{H}$ 
+($R_{\rm DCR(MAX)} = 1.68\text{m}\Omega$).
+For $L = 0.22\mu$H, $\Delta I_{\rm OUT} = 5.3$A and 
+$I_{\rm MAX} = 22.7$A. The IHLP-3232DZ-01 inductor can easily
+support a peak load current of 22.7A, resulting in a temperature 
+rise of about $20^\circ$C.
+
+The LTC3855 supports current-sensing via current-sense resistor or
+inductor DCR sensing. This design will use DCR sensing to minimize
+power loss. Transient tests with the LTspice model showed a DCR
+sense RC-network with an attenuation of 0.8 resulted in a transient
+response on the \verb+V(comp)+ pin that remained within the
+linear region of the $I_{\rm TH}$ voltage 
+(see p7~\cite{Linear_LTC3855_2009}). The sense network components
+are
+%
+\begin{equation}
+\begin{split}
+C_{\rm S} &= 100\text{nF}\\
+R_{\rm S} &= 1.3\text{k}\Omega\\
+R_{\rm ATTEN} &= 5.23\text{k}\Omega
+\end{split}
+\end{equation}
+%
+where $C_{\rm S}$ is selected to give resistors on the k$\Omega$
+range, and the resistances are the nearest 1-percent values.
+
+\item Power MOSFET and D1 selection.
+
+The LTspice example downloaded from the LTC3855 web page uses a
+Renesas RJK0305DP for the main (top) MOSFET 
+($R_{\rm DS(ON)} = 6.7\text{m}\Omega$), and a Renesas RJK0301DP
+for the synchronous (bottom) MOSFET ($R_{\rm DS(ON)} = 2.3\text{m}\Omega$).
+These components are also used in this example.
+
+{\bf TODO}: power estimates from LTspice. Compare these
+Renesas MOSFETs to the Fairchild and TI dual-asymmetric packaged
+devices. Do they have lower power dissipation? They certainly
+have lower PCB real-estate requirements.
+
+\item Input capacitance selection.
+
+TODO: how do I calculate the value and ESR? Is it just based on
+RMS handling? LTC3855 data sheet p17 has comments on ESR, but
+nothing on the amount of capacitance.
+
+\item Output capacitance selection.
+
+The {\em nominal} value of the output capacitance is determined by 
+the amount required to absorb the energy in the inductor during a
+load step from maximum current to minimum current, i.e., the amount
+of capacitance {\em per phase} is
+%
+\begin{equation}
+\begin{split}
+C_{\rm OUT} &> \frac{LI_{\rm STEP}^2}
+{(V_{\rm OUT} + \Delta V_{\rm OUT})^2 - V_{\rm OUT}^2} 
+\approx \frac{LI_{\rm STEP}^2}{2V_{\rm OUT}\Delta V_{\rm OUT}}\\
+&= \frac{0.22\mu\times 20^2}{2\times0.95\times25\text{m}}\\
+&= 1853\mu\text{F}
+\end{split}
+\end{equation}
+%
+where $I_{\rm STEP}=20$A and $\Delta V_{\rm OUT} = 25$mV was
+used, since there will be additional ripple voltage due to 
+the output capacitance ESR.
+
+The {\em nominal} value of the output capacitance ESR is determined by
+the allowable output voltage dip during a load step from minimum current
+to maximum current, i.e.,
+%
+\begin{equation}
+R_{\rm ESR} = \frac{\Delta V_{\rm OUT}}{I_{\rm STEP}} = 
+\frac{30\text{m}}{20} = 1.5\text{m}\Omega
+\end{equation}
+%
+The output capacitance requirements are dominated by the low ESR.
+The per phase requirements can be met using four 
+470$\mu$F 2R5TPF470M6L (2.5V, 6m$\Omega$, 4.4A$_{\rm RMS}$)
+Sanyo POSCAP TPF-series capacitors.
+%
+The output voltage dip (peaking) for a 20A output current increase
+(decrease) will be about 30mV. The single-phase ripple voltage will
+be $1.5\text{m}\Omega \times 5.3\text{A} = 8$mV.
+The dual-phase supply will have reduced output ripple voltage.
+
+\item Output voltage.
+
+The output voltage is determined by the output feedback resistors
+and the controller reference voltage, 
+%
+\begin{equation}
+V_{\rm OUT} = V_{\rm REF}\left(1+\frac{R_{\rm a}}{R_{\rm b}}\right)
+\end{equation}
+%
+where $V_{\rm REF} = 0.6$V, $R_{\rm a}$ is the resistor from the
+output voltage to the controller $V_{\rm OSENSE}$ pin, and 
+$R_{\rm b}$ is the resistor from the controller $V_{\rm OSENSE}$ 
+pin to ground.
+%
+The nearest pair of 1-percent resistor values for an output voltage
+of 0.95V are $R_{\rm a} = 10.2\text{k}\Omega$ and 
+$R_{\rm b} = 17.4\text{k}\Omega$, resulting in an output
+voltage of $V_{\rm OUT} = 0.952$V.
+%
+The output voltage can be adjusted in approximately 2mV steps
+using 1-percent resistors. For example, $R_{\rm a} = 9.31\text{k}\Omega$ and 
+$R_{\rm b} = 15.8\text{k}\Omega$, results in an output
+voltage of $V_{\rm OUT} = 0.954$V, and 
+$R_{\rm a} = 6.34\text{k}\Omega$ and 
+$R_{\rm b} = 10.7\text{k}\Omega$, results in an output
+voltage of $V_{\rm OUT} = 0.956$V.  
+%
+Selecting an output voltage that is slightly higher than the nominal
+0.95V, helps to trade off the ESR dip voltage, against the capacitance
+peaking voltage, which can be more easily reduced by increasing
+the output capacitance value.
+
+\item Soft-start capacitance.
+
+The soft-start time is 
+%
+\begin{equation}
+t_{\rm SS} = 0.6\text{V}\cdot\frac{C_{\rm SS}}{1.2\mu\text{A}}
+\end{equation}
+%
+The soft-start time should be configured such that the current 
+required to charge the output capacitance is within normal
+operating conditions. The average current required to charge
+the output capacitance to the output voltage within the
+soft-start time (assuming no load current) is
+%
+\begin{equation}
+I_{\rm SS} = \frac{C_{\rm OUT}V_{\rm OUT}}{t_{\rm SS}}
+\end{equation}
+%
+A soft-start capacitance of $C_{\rm SS} = 1800$pF results in a
+soft-start time of 0.9ms, and an average output current
+of $4\times470\mu\times0.95/0.9\text{m} = 2$A, which is
+well within operating conditions. The power-on current
+waveform during the soft-start time can be seen in 
+Figure~\ref{fig:LTC3855_ex1_transient_response_power_on}(a).
+
+\item Compensation components.
+
+The LTC3855 example design uses the compensation components
+$R_1  = 18.2\text{k}\Omega$, $C_1 = 1000$pF, and
+$C_2 = 150$pF. These components create a compensation
+network with a zero frequency of
+%
+\begin{equation}
+f_{\rm Z} = \frac{1}{2\pi R_1 C_1} = 8.7\text{kHz}
+\end{equation}
+%
+and a pole frequency of
+%
+\begin{equation}
+f_{\rm P} = \frac{1}{2\pi R_1 C_1C_2/(C_1+C_2)}
+= 67.7\text{kHz}
+\end{equation}
+%
+These components were used as the initial compensation components,
+and LTspice transient analysis runs were used to adjust the 
+components until an acceptable transient response was obtained.
+\end{enumerate}
+
+
+\clearpage
+% -----------------------------------------------------------------
+\subsubsection{Transient Response Analysis}
+% -----------------------------------------------------------------
+
+Figures~\ref{fig:LTC3855_ex1_transient_circuit} 
+and~\ref{fig:LTC3855_ex2_transient_circuit} show the LTspice circuits
+used for analyzing the LTC3855 single-phase and dual-phase transient
+response\footnote{The transient analysis run time for the
+single-phase controller was about 8 minutes, while the run time
+for the dual-phase controller was about 15 minutes.}.
+In the single-phase circuit, the second channel is disabled
+by grounding the \verb+RUN+ pin. Relative to the single-phase
+circuit, the dual-phase circuit has the following changes;
+extra power-stage MOSFETs and inductor, pins are tied together
+per the data sheet recommendations (\verb+COMP+, \verb+FB+, 
+\verb+ILIM+, \verb+RUN+, \verb+SS+, and \verb+TEMP+), the soft-start
+capacitor value was doubled (since the \verb+SS+ pins are tied
+together, the soft-start current doubles), the compensation 
+network was modified, and the output current load step was
+doubled.
+
+Figure~\ref{fig:LTC3855_ex1_transient_response_power_on} shows
+the single-phase power-on transient response (with $4\times470\mu$F
+output capacitance). The dual-phase response is not shown, as it
+looks similar. The transient response of the single-phase circuit in
+Figure~\ref{fig:LTC3855_ex1_transient_response_power_on}(b) shows
+that the load current transients cause violations of the output 
+voltage regulation specification.
+The load current increase causes the output voltage to drop to 
+912mV (8mV violation), and the load current decrease causes the
+output voltage to peak to 988mV (8mV violation).
+The poor transient response is due to low control loop bandwidth.
+
+Figure~\ref{fig:LTC3855_ex1_transient_response} shows the transient
+response with an improved compensation network; $R_1 = 40.2\text{k}\Omega$,
+$C_1 = 560$pF and $C_2 = 82$pF. The improved compensation network
+values were determined by increasing the compensation mid-band gain
+by increasing $R_1$, and then reducing $C_1$ and $C_2$ by a similar
+amount ($C_1 = 470$pF and $C_2 = 68$pF produce virtually identical
+transient responses).
+The transient response in Figure~\ref{fig:LTC3855_ex1_transient_response}(a)
+marginally violates the output voltage regulation specification.
+The load current increase causes the output voltage to drop to 
+916mV (4mV violation), and the load current decrease causes the
+output voltage to peak to 978mV (2mV margin).
+%
+Figure~\ref{fig:LTC3855_ex1_transient_response}(b) shows that voltage
+regulation specification can be met by increasing the output capacitance.
+The load current increase causes the output voltage to drop to 
+925mV (5mV margin), and the load current decrease causes the
+output voltage to peak to 977mV (3mV margin).
+
+Figure~\ref{fig:LTC3855_ex2_transient_response} shows the transient
+response for the dual-phase controller for two values of output
+capacitance. The compensation network for the dual-phase controller
+was adjusted until its response was similar to that of the
+single-phase controller. The compensation values were changed
+to; $R_1 = 20\text{k}\Omega$, $C_1 = 1500$pF and $C_2 = 150$pF.
+%
+The transient response in Figure~\ref{fig:LTC3855_ex2_transient_response}(a)
+marginally violates the output voltage regulation specification.
+The load current increase causes the output voltage to drop to 
+921mV (1mV margin), and the load current decrease causes the
+output voltage to peak to 982mV (2mV violation).
+%
+Figure~\ref{fig:LTC3855_ex2_transient_response}(b) shows that voltage
+regulation specification can be met by increasing the output capacitance.
+The load current increase causes the output voltage to drop to 
+925mV (5mV margin), and the load current decrease causes the
+output voltage to peak to 975mV (3mV margin).
+
+The bulk output capacitance uses Sanyo POSCAP-series capacitors.
+The single-phase transient response in
+Figure~\ref{fig:LTC3855_ex1_transient_response}(a)
+used $4\times470\mu$F 2R5TPF470M6L (2.5V, 6m$\Omega$, 4.4A$_{\rm RMS}$),
+while Figure~\ref{fig:LTC3855_ex1_transient_response}(b) used
+$4\times1000\mu$F ETPF1000M6H (2.5V, 6m$\Omega$, 5.6A$_{\rm RMS}$).
+The dual-phase transient response in
+Figure~\ref{fig:LTC3855_ex2_transient_response}(a)
+used $8\times470\mu$F 2R5TPF470M6L (2.5V, 6m$\Omega$, 4.4A$_{\rm RMS}$),
+while Figure~\ref{fig:LTC3855_ex2_transient_response}(b) used
+$8\times1000\mu$F ETPF1000M6H (2.5V, 6m$\Omega$, 5.6A$_{\rm RMS}$).
+The Sanyo POSCAP catalog lists parts with slightly lower ESR as
+{\em in development}; ETPF470M5H (2.5V, 5m$\Omega$, 6.1A$_{\rm RMS}$),
+and ETPF1000M5H (2.5V, 5m$\Omega$, 6.1A$_{\rm RMS}$).
+
+The key design aspect that the transient response analysis has
+determined, is that the (single-) dual-phase supply requires
+(four) eight POSCAP capacitors to meet the output voltage regulation
+specification.
+
+% -----------------------------------------------------------------
+% Single-phase transient LTspice circuit
+% -----------------------------------------------------------------
+%
+\begin{landscape}
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=210mm]
+    {figures/LTC3855_ex1_transient_circuit.pdf}
+  \end{center}
+  \caption{LTC3855 12V to 0.95V@20A single-phase LTspice transient response analysis circuit.}
+  \label{fig:LTC3855_ex1_transient_circuit}
+\end{figure}
+\end{landscape}
+
+% -----------------------------------------------------------------
+% Dual-phase transient LTspice circuit
+% -----------------------------------------------------------------
+%
+\begin{landscape}
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=210mm]
+    {figures/LTC3855_ex2_transient_circuit.pdf}
+  \end{center}
+  \caption{LTC3855 12V to 0.95V@40A dual-phase LTspice transient response analysis circuit.}
+  \label{fig:LTC3855_ex2_transient_circuit}
+\end{figure}
+\end{landscape}
+
+% -----------------------------------------------------------------
+% Single-phase transient response waveforms
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,205)(0,0)
+    \put(10,105){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTC3855_ex1_transient_response_a.pdf}}
+    \put(10,0){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTC3855_ex1_transient_response_b.pdf}}
+    \put(77,105){(a)}
+    \put(77, 0){(b)}
+  \end{picture}
+  \caption{LTC3855 12V to 0.95V@20A single-phase supply LTspice transient response;
+  (a) from $t=0$, and (b) zoomed view from $t=1.1$ms to 2.1ms.}
+  \label{fig:LTC3855_ex1_transient_response_power_on}
+\end{figure}
+
+% -----------------------------------------------------------------
+% Single-phase transients for 470uF and 1000uF
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,205)(0,0)
+    \put(10,105){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTC3855_ex1_transient_response_c.pdf}}
+    \put(10,0){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTC3855_ex1_transient_response_d.pdf}}
+    \put(77,105){(a)}
+    \put(77, 0){(b)}
+  \end{picture}
+  \caption{LTC3855 12V to 0.95V@20A single-phase supply LTspice {\em improved} 
+  transient response for output capacitances of;
+  (a) $4\times470\mu$F, and (b) $4\times1000\mu$F, both with 6m$\Omega$ ESR.}
+  \label{fig:LTC3855_ex1_transient_response}
+\end{figure}
+
+% -----------------------------------------------------------------
+% Dual-phase transients for 470uF and 1000uF
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,205)(0,0)
+    \put(10,105){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTC3855_ex2_transient_response_a.pdf}}
+    \put(10,0){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTC3855_ex2_transient_response_b.pdf}}
+    \put(77,105){(a)}
+    \put(77, 0){(b)}
+  \end{picture}
+  \caption{LTC3855 12V to 0.95V@40A dual-phase supply LTspice 
+  transient response for output capacitances of;
+  (a) $8\times470\mu$F, and (b) $8\times1000\mu$F, both with 6m$\Omega$ ESR.}
+  \label{fig:LTC3855_ex2_transient_response}
+\end{figure}
+
+\clearpage
+% -----------------------------------------------------------------
+\subsubsection{Frequency Response Analysis}
+% -----------------------------------------------------------------
+
+Figures~\ref{fig:LTC3855_ex1_bode_circuit} 
+and~\ref{fig:LTC3855_ex2_bode_circuit} show the LTspice circuits
+used for analyzing the LTC3855 single-phase and dual-phase Bode
+response\footnote{The Bode analysis run time for the
+single-phase controller was 14 hours 20 minutes, while the run
+time for the dual-phase controller was 26 hours 56 minutes.}.
+%
+Figures~\ref{fig:LTC3855_ex1_bode_response}
+and~\ref{fig:LTC3855_ex2_bode_response} show the Bode responses.
+The Bode responses reasonable open-loop bandwidths, i.e., relative
+to the switching frequency of $f_{\rm SW} = 750$kHz, the open-loop bandwidth
+of 60kHz, is slightly under the target of $f_{\rm SW}/10 = 75$kHz.
+The open-loop gain could be increased to 75kHz if more 
+compensation gain was acceptable at the switching frequency.
+
+% -----------------------------------------------------------------
+\subsubsection{Review and Discussion}
+% -----------------------------------------------------------------
+
+The 12V to 0.95A@40A dual-phase controller transient response in
+Figure~\ref{fig:LTC3855_ex2_transient_response}(b)
+($8 \times 1000\mu$F output capacitance) shows that the design
+meets the output voltage regulation specification, and the Bode 
+response in Figure~\ref{fig:LTC3855_ex2_bode_response} shows that
+the control loop is stable. 
+At this point in the design phase, the power supply design would
+be accepted, with final adjustments occurring after hardware tests.
+
+\clearpage
+% -----------------------------------------------------------------
+% LTspice circuit
+% -----------------------------------------------------------------
+%
+\begin{landscape}
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=200mm]
+    {figures/LTC3855_ex1_bode_circuit.pdf}
+  \end{center}
+  \caption{LTC3851A 12V to 0.95V@20A single-phase LTspice Bode response analysis circuit.}
+  \label{fig:LTC3855_ex1_bode_circuit}
+\end{figure}
+\end{landscape}
+
+\clearpage
+% -----------------------------------------------------------------
+% LTspice circuit
+% -----------------------------------------------------------------
+%
+\begin{landscape}
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=200mm]
+    {figures/LTC3855_ex2_bode_circuit.pdf}
+  \end{center}
+  \caption{LTC3855 12V to 0.95V@40A dual-phase LTspice Bode response analysis circuit.}
+  \label{fig:LTC3855_ex2_bode_circuit}
+\end{figure}
+\end{landscape}
+
+\clearpage
+% -----------------------------------------------------------------
+% Bode response
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,190)(0,0)
+    \put(15,100){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3855_ex1_bode_response_mag.pdf}}
+    \put(15,4){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3855_ex1_bode_response_phase.pdf}}
+    \put(75,  97){(a)}
+    \put(75,   0){(b)}
+  \end{picture}
+  \caption{LTC3855 12V to 0.95V@20A single-phase supply Bode response;
+  (a) magnitude, and (b) phase. 
+  The open-loop gain has a cross-over frequency of 61kHz with
+  84-degrees of phase margin. The compensation network has
+  a gain of 10dB at the switching frequency, i.e., the
+  compensation signal contains the output voltage ripple 
+  amplified by 3.3 times.}
+  \label{fig:LTC3855_ex1_bode_response}
+\end{figure}
+
+\clearpage
+% -----------------------------------------------------------------
+% Bode response
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,190)(0,0)
+    \put(15,100){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3855_ex2_bode_response_mag.pdf}}
+    \put(15,4){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3855_ex2_bode_response_phase.pdf}}
+    \put(75,  97){(a)}
+    \put(75,   0){(b)}
+  \end{picture}
+  \caption{LTC3855 12V to 0.95V@40A dual-phase supply Bode response;
+  (a) magnitude, and (b) phase. 
+  The open-loop gain has a cross-over frequency of 66kHz with
+  85-degrees of phase margin. The compensation network has
+  a gain of 11dB at the switching frequency, i.e., the
+  compensation signal contains the output voltage ripple 
+  amplified by 3.5 times.}
+  \label{fig:LTC3855_ex2_bode_response}
+\end{figure}
+
+
+

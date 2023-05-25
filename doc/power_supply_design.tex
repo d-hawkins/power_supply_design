@@ -1,0 +1,209 @@
+\documentclass[10pt,twoside]{article}
+
+% Math symbols
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% Headers/Footers
+\usepackage{fancyhdr}
+
+% Colors
+\usepackage[usenames,dvipsnames]{color}
+
+% Importing and manipulating graphics
+\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage{lscape}
+
+% Misc packages
+\usepackage{verbatim}
+\usepackage{dcolumn}
+\usepackage{ifpdf}
+\usepackage{enumerate}
+
+% PDF Bookmarks and hyperref stuff
+\usepackage[
+  bookmarks=true,
+  bookmarksnumbered=true,
+  colorlinks=true,
+  filecolor=blue,
+  linkcolor=blue,
+  urlcolor=blue,
+  hyperfootnotes=true
+  citecolor=blue
+]{hyperref}
+
+% Improved hyperlinking to figures
+% (include after hyperref)
+\usepackage[all]{hypcap}
+
+% Improved citation handling
+% (include after the hyperref stuff)
+\usepackage{cite}
+
+% Pretty-print code
+\usepackage{listings}
+
+% -----------------------------------------------------------------
+% Hyper-references
+% -----------------------------------------------------------------
+%
+% This page has lots of good advice on hyper-references, including
+% the use of the hypcap package and \phantomsection for generating
+% labels to text.
+%
+% http://en.wikibooks.org/wiki/LaTeX/Labels_and_Cross-referencing
+%
+% -----------------------------------------------------------------
+% Setup the margins
+% -----------------------------------------------------------------
+% Footer Template
+
+% Set left margin - The default is 1 inch, so the following
+% command sets a 1.25-inch left margin.
+\setlength{\oddsidemargin}{0.25in}
+\setlength{\evensidemargin}{0.25in}
+
+% Set width of the text - What is left will be the right
+% margin. In this case, right margin is
+% 8.5in - 1.25in - 6in = 1.25in.
+\setlength{\textwidth}{6in}
+
+% Set top margin - The default is 1 inch, so the following
+% command sets a 0.75-inch top margin.
+%\setlength{\topmargin}{-0.25in}
+
+% Set height of the header
+\setlength{\headheight}{0.3in}
+
+% Set vertical distance between the header and the text
+\setlength{\headsep}{0.2in}
+
+% Set height of the text
+\setlength{\textheight}{8.5in}
+
+% Set vertical distance between the text and the
+% bottom of footer
+\setlength{\footskip}{0.4in}
+
+% -----------------------------------------------------------------
+% Allow floats to take up more space on a page.
+% -----------------------------------------------------------------
+
+% see page 142 of the Companion for this stuff and the
+% documentation for the fancyhdr package
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.95}
+% dont make this too small
+\renewcommand{\floatpagefraction}{0.35}
+\setcounter{totalnumber}{5}
+
+% -----------------------------------------------------------------
+% Abbreviated symbols
+% -----------------------------------------------------------------
+\newcommand{\sinc}{\ensuremath{\,\text{sinc}}}
+\newcommand{\rect}{\ensuremath{\,\text{rect}}}
+
+% =================================================================
+% The document starts here
+% =================================================================
+%
+\begin{document}
+\title{Power Supply Design Examples}
+\author{D. W. Hawkins (dwh@ovro.caltech.edu)}
+\date{\today}
+%\date{June 13, 2012}
+\maketitle
+
+% No header/footer on the first page
+\thispagestyle{empty}
+
+\tableofcontents
+
+% start the intro on an odd page
+\cleardoublepage
+%\clearpage
+
+% Set up the header/footer
+\pagestyle{fancy}
+\lhead{Power Supply Design Examples}
+\chead{}
+\rhead{\today}
+\lfoot{}
+\cfoot{}
+\rfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Set the listings package language to Tcl
+\lstset{language=Tcl}
+
+% =================================================================
+\section{Introduction}
+% =================================================================
+
+This document contains power supply design examples created
+and analyzed using LTspice and MATLAB.
+
+% =================================================================
+\section{Example Designs}
+% =================================================================
+
+The following power supply design examples follows the same
+general flow;
+%
+\begin{enumerate}
+\item Specify the requirements for the power supply.
+\item Follow the data sheet design sequence.
+\item Create LTspice simulations for the transient and
+frequency (Bode) responses.
+\item Review the Bode and transient responses.
+\item Optimize the control loop using the measured Bode response.
+\item Review and discuss the design.
+\end{enumerate}
+%
+These example designs provide significantly more insight into
+the design of the power supplies than the Linear Technology
+data sheets or application notes.
+
+% -----------------------------------------------------------------
+% Include the example designs
+% -----------------------------------------------------------------
+%
+% Each example design contains much the same sequence, so having
+% them in a separate file makes it easier to create a new example
+% using an earlier example as a template.
+%
+\clearpage
+\input{sections/LTC1735_example.tex}
+\clearpage
+\input{sections/LTC3851A_example.tex}
+\clearpage
+\input{sections/LTC3855_example.tex}
+\clearpage
+\input{sections/LTC_uModules.tex}
+
+
+\clearpage
+% -----------------------------------------------------------------
+% Do the bibliography
+% -----------------------------------------------------------------
+%Note, you can't have spaces in the list of bibliography files
+%
+\bibliography{refs}
+\bibliographystyle{plain}
+
+% -----------------------------------------------------------------
+\end{document}
+
+
+
+
+
+
+
+
+
+
+

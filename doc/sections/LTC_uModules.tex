@@ -1,0 +1,714 @@
+% =================================================================
+\subsection{LTC $\mu$Modules}
+% =================================================================
+
+
+The Linear Technology product guide {\em Power management solutions
+for Altera's FPGAs, CPLDs and Structured 
+ASICs}~\cite{Linear_Altera_Product_Guide_2012} contains
+Linear Technology power supply recommendations for Altera devices
+based on input supply voltage, output supply voltage, and output current.
+The LTM4601A, LTM4611, LTM4628, and LTM4627 $\mu$Modules are recommended
+for many of the high-current applications. 
+%
+The Linear Technology web site~\cite{Linear_Altera_Reference_Designs_2012}, and
+the {\em Altera Development Tools Guide}~\cite{Arrow_Altera_Devtool_Guide_2010}
+from Arrow Electronics, contain a list Altera development kits along with the
+Linear Technology devices used on each kit.
+
+The LTM4601A $\mu$Module is an integrated module containing a
+controller, MOSFETs, inductor, output capacitance, and 
+compensation~\cite{Linear_LTM4601A_2011}.
+The data sheet indicates that to use the module, the user
+{\em simply} determines the output voltage using a resistor, and
+adds input capacitance and output capacitance. The following
+examples demonstrate that in practice things are not that
+simple, due mainly to the fact that the compensation network
+is not user-controlled.
+
+% =================================================================
+\subsubsection{LTM4601A: 12V to 1.5V@12A (single-phase)}
+% =================================================================
+
+For a $V_{\rm IN} = 12$V to $V_{\rm OUT} = 1.5\text{V} \pm 75$mV at 
+$I_{\rm OUT} = 12$A single-phase power supply design, the
+{\em nominal} output ripple current of the LTM4601A is
+%
+\begin{equation}
+\Delta I_{\rm OUT} = \frac{V_{\rm OUT}}{f_{\rm SW}L}\left(
+1 - \frac{V_{\rm OUT}}{V_{\rm IN}}\right) =
+\frac{1.5}{850\text{k}\times0.47\mu}\left(
+1 - \frac{1.5}{12}\right) = 3.3\text{A}
+\end{equation}
+%
+where the nominal switching frequency, $f_{\rm SW} = 850$kHz, and
+the internal inductor value, $L = 0.47\mu$F.
+
+The {\em nominal} total output capacitance requirement is
+%
+\begin{equation}
+\begin{split}
+C_{\rm OUT} &> \frac{LI_{\rm STEP}^2}{2V_{\rm OUT}\Delta V_{\rm OUT}}\\
+&= \frac{0.47\mu\times 11^2}{2\times1.5\times65\text{m}}\\
+&= 292\mu\text{F}
+\end{split}
+\end{equation}
+%
+%
+where $I_{\rm STEP}=11$A and $\Delta V_{\rm OUT} = 65$mV was
+used, since there will be additional ripple voltage due to 
+the output capacitance ESR.
+
+The {\em nominal} value of the output capacitance ESR is determined by
+the allowable output voltage dip during a load step from minimum current
+to maximum current, i.e.,
+%
+\begin{equation}
+R_{\rm ESR} = \frac{\Delta V_{\rm OUT}}{I_{\rm STEP}} = 
+\frac{65\text{m}}{11} = 5.9\text{m}\Omega
+\end{equation}
+%
+The output capacitance requirements can be met using a
+Sanyo POSCAP TPLF-series
+330$\mu$F ETPLF330M6 (2.5V, 6m$\Omega$, 4.7A$_{\rm RMS}$)
+or TPF-series
+330$\mu$F 2TPF330M6 (2.0V, 6m$\Omega$, 4.4A$_{\rm RMS}$)
+or 2R5TPF330M7L (2.5V, 7m$\Omega$, 4.4A$_{\rm RMS}$).
+A 100$\mu$F ceramic can be used in parallel with the POSCAP.
+%
+The output voltage dip (peaking) for a 11A output current increase
+(decrease) will be about 66mV (44mV). The ripple voltage will
+be $6\text{m}\Omega \times 3.3\text{A} = 20$mV.
+
+Figure~\ref{fig:LTM4601A_ex1_transient_circuit} shows the LTspice
+circuit used for transient analysis of the single-phase supply.
+Figure~\ref{fig:LTM4601A_ex1_transient_response} shows the
+transient response.
+%
+The transient response in 
+Figure~\ref{fig:LTM4601A_ex1_transient_response}(a) fails to meet
+the output voltage regulation of $\pm75$mV; the response dips to
+1.373V (52mV violation) and peaks at 1.625V (50mV) violation.
+Figure~\ref{fig:LTM4601A_ex1_transient_response}(b) shows that
+the output voltage regulation requirement can almost be met
+by adding a feed-forward capacitor of 330pF;  the response dips to
+1.419V (6mV violation) and peaks at 1.579V (4mV) violation.
+
+The feed-forward capacitor reacts with the internal 
+$R_{\rm INT} = 60.4\text{k}\Omega$
+and $R_{\rm SET}$ resistors in the output voltage-to-error 
+amplifier feedback path. The addition of the feed-forward
+capacitor converts the feedback path from a simple attenuator
+%
+\begin{equation}
+\alpha_{\rm DC} = \frac{V_{\rm REF}}{V_{\rm OUT}} =
+\frac{R_{\rm SET}}{R_{\rm INT} + R_{\rm SET}}
+\end{equation}
+%
+to a frequency dependent network
+%
+\begin{equation}
+\begin{split}
+\alpha(s) &= 
+\frac{R_{\rm SET}}{R_{\rm INT} + R_{\rm SET}}\cdot
+\frac{1+sR_{\rm INT}C_{\rm FF}}
+{1+s(R_{\rm INT}||R_{\rm SET})C_{\rm FF}}\\
+&=
+\frac{R_{\rm SET}}{R_{\rm INT} + R_{\rm SET}}\cdot
+\frac{1+sR_{\rm INT}C_{\rm FF}}
+{1+sR_{\rm INT}C_{\rm FF}V_{\rm REF}/V_{\rm OUT}}
+\end{split}
+\end{equation}
+%
+where use was made of the parallel resistor ratio
+%
+\begin{equation}
+R_{\rm INT}||R_{\rm SET} = \frac{R_{\rm INT}R_{\rm SET}}{R_{\rm INT}+R_{\rm SET}} 
+= R_{\rm INT}\cdot\frac{V_{\rm REF}}{V_{\rm OUT}}
+\end{equation}
+%
+and the $\alpha_{\rm DC}$ output voltage relationship.
+%
+The frequency dependent feedback network has zero and pole frequencies
+%
+\begin{equation}
+\begin{split}
+f_{\rm Z} &= \frac{1}{2\pi R_{\rm INT}C_{\rm FF}}\\
+f_{\rm P} &= \frac{1}{2\pi R_{\rm INT}C_{\rm FF}V_{\rm REF}/V_{\rm OUT}}
+= f_{\rm Z}\cdot\frac{V_{\rm OUT}}{V_{\rm REF}}
+\end{split}
+\end{equation}
+%
+where since $V_{\rm OUT} > V_{\rm REF}$, the zero precedes the
+pole\footnote{The feed-forward capacitor location in
+Figure~\ref{fig:LTM4601A_ex1_transient_circuit} is as shown in 
+the LTM4601A data sheet. This location is however incorrect.
+The feed-forward capacitor should be placed between the {\tt VOUT\_LCL} and
+{\tt FB} pins so that it is placed across the 60.4k$\Omega$
+resistor. The location recommended by Linear effectively places the
+capacitor across the positive input to the voltage sense amplifier,
+{\tt VOSNS+}, and the {\tt FB} pin (error amplifier negative input). 
+This is not ideal, as it will cause an imbalance in the differential
+input impedance of the voltage sense amplifier, since
+{\tt VOSNS+} and {\tt VOSNS-} are no longer impedance matched.}.
+%
+The addition of a feed-forward capacitor to adjust the compensation network
+is {\em not recommended}, as it increases the compensation gain {\em at
+all frequencies above the zero}. This results in an increase in the
+compensation gain at the switching frequency, which can lead to
+control loop instability.
+
+Figure~\ref{fig:LTM4601A_ex1_bode_circuit} shows the LTspice
+circuit used for Bode response analysis of the single-phase 
+supply.
+Figure~\ref{fig:LTM4601A_ex1a_bode_response} shows the
+Bode response\footnote{The Bode analysis time
+was 1 hour and 30 minutes.} with no feed-forward capacitor
+(actually $C_{\rm FF} = 1$fF (femto-farad)).
+The Bode response in Figure~\ref{fig:LTM4601A_ex1a_bode_response}
+shows that the LTM4601A controller has an open-loop cross-over
+frequency of only 23kHz, which is four times lower than the
+target cross-over frequency of $f_{\rm SW}/10 = 85$kHz. 
+The solid red-line in Figure~\ref{fig:LTM4601A_ex1a_bode_response}
+represents a best-guess of the error amplifier gain and
+compensation components (the slight deviation in phase at
+higher frequencies is most likely due to the voltage-sense
+amplifier). Because the user has no access to the compensation
+network, there is no way to adjust the mid-band gain, to improve
+the open-loop cross-over frequency. The only option available
+to the user, is the feed-forward capacitor.
+
+The purpose of the feed-forward capacitor is to increase the
+open-loop cross-over frequency. The feed-forward capacitor can
+only do this, if the feed-forward zero is located below the
+nominal cross-over frequency. The maximum increase in
+cross-over frequency occurs if both the zero and pole are
+place below the nominal cross-over frequency.
+For the Bode response in 
+Figure~\ref{fig:LTM4601A_ex1a_bode_response}, the zero should
+be located below $V_{\rm REF}/V_{\rm OUT}$ of the nominal cross-over
+frequency, i.e., below $0.6/1.5\times23\text{kHz} = 9$kHz.
+A feed-forward capacitor of $C_{\rm FF} = 330$pF places the
+feed-forward zero and pole at 8kHz and 20kHz.
+With this arrangement, the closed-loop gain at the nominal
+cross-over frequency will increase by $V_{\rm OUT}/V_{\rm REF} = 2.5$
+(8dB), increasing the cross-over frequency to somewhere near 58kHz.
+Figure~\ref{fig:LTM4601A_ex1b_bode_response} shows the
+Bode response with a feed-forward capacitor of
+$C_{\rm FF} = 330$pF, with a cross-over frequency of 53kHz.
+The increase in cross-over frequency is what improved the transient
+response in Figure~\ref{fig:LTM4601A_ex1_transient_response}(b).
+
+As commented earlier, feed-forward compensation is {\em not
+recommended}. A comparison of the Bode responses in 
+Figures~\ref{fig:LTM4601A_ex1a_bode_response}
+and~\ref{fig:LTM4601A_ex1b_bode_response} shows that the
+compensation gain at the switching frequency started out
+high at 8dB, and was increased to 16dB by feed-forward
+compensation. This gain amplifies the output voltage ripple
+signal in the error amplifier output, which can cause
+instability in the control loop.
+This gain can be reduced by moving high-frequency pole
+in the compensation loop down, by adding a capacitor to the
+\verb+COMP+ pin. The LTM4627 $\mu$Module data sheet shows
+example circuits with this additional capacitor, however,
+the data sheet has no details on why it is used, i.e, the
+casual user of the part has no idea what the capacitor
+on the \verb+COMP+ pin is for. The data sheets refer the
+user to use LTpowerCAD for control loop optimization,
+however, that software currently has no such feature.
+
+% -----------------------------------------------------------------
+% Single-phase transient LTspice circuit
+% -----------------------------------------------------------------
+%
+\begin{landscape}
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=210mm]
+    {figures/LTM4601A_ex1_transient_circuit.pdf}
+  \end{center}
+  \caption{LTM4601A 12V to 1.5V@12A single-phase LTspice transient response analysis circuit.}
+  \label{fig:LTM4601A_ex1_transient_circuit}
+\end{figure}
+\end{landscape}
+
+% -----------------------------------------------------------------
+% Single-phase transients for CFF = 1fF and 330pF
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,205)(0,0)
+    \put(10,105){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTM4601A_ex1a_transient_response.pdf}}
+    \put(10,0){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTM4601A_ex1b_transient_response.pdf}}
+    \put(77,105){(a)}
+    \put(77, 0){(b)}
+  \end{picture}
+  \caption{LTM4601A 12V to 1.5V@12A single-phase LTspice transient response
+  for feed-forward capacitances of;
+  (a) $C_{\rm FF} = 1$fF (i.e., none), and (b) $C_{\rm FF} = 330$pF.
+  The feed-forward capacitance improves the transient response.}
+  \label{fig:LTM4601A_ex1_transient_response}
+\end{figure}
+
+% -----------------------------------------------------------------
+% Single-phase Bode response LTspice circuit
+% -----------------------------------------------------------------
+%
+\begin{landscape}
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=200mm]
+    {figures/LTM4601A_ex1_bode_circuit.pdf}
+  \end{center}
+  \caption{LTM4601A 12V to 1.5V@12A single-phase LTspice Bode response analysis circuit.}
+  \label{fig:LTM4601A_ex1_bode_circuit}
+\end{figure}
+\end{landscape}
+
+% -----------------------------------------------------------------
+% Single-phase Bode response for CFF = 1fF
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,190)(0,0)
+    \put(15,100){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTM4601A_ex1a_bode_response_mag.pdf}}
+    \put(15,4){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTM4601A_ex1a_bode_response_phase.pdf}}
+    \put(75,  97){(a)}
+    \put(75,   0){(b)}
+  \end{picture}
+  \caption{LTM4601A 12V to 1.5V@12A single-phase supply Bode response
+  ($C_{\rm FF} = 1$fF); (a) magnitude, and (b) phase. 
+  The open-loop gain has a cross-over frequency of 23kHz with
+  66-degrees of phase margin. The compensation network has
+  a gain of 8dB at the switching frequency, i.e., the
+  compensation signal contains the output voltage ripple 
+  amplified by 2.5 times.}
+  \label{fig:LTM4601A_ex1a_bode_response}
+\end{figure}
+
+% -----------------------------------------------------------------
+% Single-phase Bode response for CFF = 330pF
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,190)(0,0)
+    \put(15,100){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTM4601A_ex1b_bode_response_mag.pdf}}
+    \put(15,4){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTM4601A_ex1b_bode_response_phase.pdf}}
+    \put(75,  97){(a)}
+    \put(75,   0){(b)}
+  \end{picture}
+  \caption{LTM4601A 12V to 1.5V@12A single-phase supply Bode response
+  ($C_{\rm FF} = 330$pF); (a) magnitude, and (b) phase. 
+  The open-loop gain has a cross-over frequency of 53kHz with
+  101-degrees of phase margin. The compensation network has
+  a gain of 16dB at the switching frequency, i.e., the
+  compensation signal contains the output voltage ripple 
+  amplified by 6.3 times.}
+  \label{fig:LTM4601A_ex1b_bode_response}
+\end{figure}
+
+\clearpage
+% =================================================================
+\subsubsection{LTM4601A: 12V to 1.5V@24A (dual-phase)}
+% =================================================================
+
+Figure~\ref{fig:LTM4601A_ex2_transient_circuit} shows the LTspice
+circuit used for transient analysis of the 12V to 1.5V@24A dual-phase
+supply. The dual-phase supply has been configured per Figure 19 on
+page 23 of the data sheet~\cite{Linear_LTM4601A_2011}; 
+an LTM4601A-1 has been added as the second power-stage,
+an LTC6908-1 oscillator generates the 0 and 180$^\circ$
+clocks, the appropriate pins on the two controllers are
+tied together, the output voltage set resistor has been
+adjusted, the output capacitance has been doubled, and
+the load currents have been doubled.
+
+Figure~\ref{fig:LTM4601A_ex2_transient_response} shows the
+transient response. The transient response in 
+Figure~\ref{fig:LTM4601A_ex2_transient_response}(a) fails to meet
+the output voltage regulation of $\pm75$mV; the response dips to
+1.379V (46mV violation) and peaks at 1.630V (55mV) violation.
+Figure~\ref{fig:LTM4601A_ex2_transient_response}(b) shows that
+the output voltage regulation requirement can almost be met
+by adding a feed-forward capacitor of 680pF;  the response dips to
+1.426V (1mV margin) and peaks at 1.583V (8mV) violation.
+
+The transient responses in Figure~\ref{fig:LTM4601A_ex2_transient_response}
+show an instability in the control loop. 
+Figure~\ref{fig:LTM4601A_ex2_transient_currents} shows
+a slightly modified transient response, where only the load
+current increase is applied. The waveform
+\verb|I(L1)+I(L2)-I(Rload)-I(Istep)| is the inductor ripple
+current, while the waveform
+\verb+I(L1)-I(L2)+ is the difference in inductor waveforms.
+Both inductor waveforms should be fairly uniform with time,
+with variation only visible near the load current transients.
+Figure~\ref{fig:LTM4601A_ex2_transient_currents} shows that
+this is not the case; after each transient, the relative phase of
+the inductor waveforms changes from the nominal 180-degree
+phase until the waveforms are {\em in-phase} (the
+\verb+I(L1)-I(L2)+ waveform goes to zero). When the inductor
+waveforms are in-phase, the output ripple voltage doubles, and 
+the ripple fed back into the error amplifier also doubles.
+The addition of the feed-forward compensation capacitor
+{\em makes things worse} at the error amplifier output,
+since the compensation network gain is increased at the
+switching frequency. These issues are specific to the
+LTM4601A dual-phase controller. The LTC3885 dual-phase
+controller in Section~\ref{sec:LTC3855} shows none of
+these issues.
+
+Figure~\ref{fig:LTM4601A_ex2_bode_circuit} shows the LTspice
+circuit used for Bode response analysis of the dual-phase supply.
+Figures~\ref{fig:LTM4601A_ex2a_bode_response}
+and~\ref{fig:LTM4601A_ex2b_bode_response}
+show the Bode responses with $C_{\rm FF} = 1$fF and
+$C_{\rm FF} = 680$pF (approximately twice 330pF)
+\footnote{The Bode analysis time
+was 8 hours and 6 minutes for each Bode response.}.
+The comments for the single-phase controller apply to the
+Bode responses for the dual-phase controller.
+
+
+% -----------------------------------------------------------------
+% Dual-phase transient LTspice circuit
+% -----------------------------------------------------------------
+%
+\begin{landscape}
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=210mm]
+    {figures/LTM4601A_ex2_transient_circuit.pdf}
+  \end{center}
+  \caption{LTM4601A 12V to 1.5V@24A dual-phase LTspice transient response analysis circuit.}
+  \label{fig:LTM4601A_ex2_transient_circuit}
+\end{figure}
+\end{landscape}
+
+% -----------------------------------------------------------------
+% Dual-phase transients for CFF = 1fF and 330pF
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,205)(0,0)
+    \put(10,105){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTM4601A_ex2a_transient_response.pdf}}
+    \put(10,0){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTM4601A_ex2b_transient_response.pdf}}
+    \put(77,105){(a)}
+    \put(77, 0){(b)}
+  \end{picture}
+  \caption{LTM4601A 12V to 1.5V@24A dual-phase LTspice transient response
+  for feed-forward capacitances of;
+  (a) $C_{\rm FF} = 1$fF (i.e., none), and (b) $C_{\rm FF} = 680$pF.
+  The feed-forward capacitance improves the transient response.}
+  \label{fig:LTM4601A_ex2_transient_response}
+\end{figure}
+
+% -----------------------------------------------------------------
+% Dual-phase transient currents for CFF = 1fF and 330pF
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,205)(0,0)
+    \put(10,105){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTM4601A_ex2a_transient_currents.pdf}}
+    \put(10,0){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTM4601A_ex2b_transient_currents.pdf}}
+    \put(77,105){(a)}
+    \put(77, 0){(b)}
+  \end{picture}
+  \caption{LTM4601A 12V to 1.5V@24A dual-phase LTspice transient
+  response {\em instability} for feed-forward capacitances of;
+  (a) $C_{\rm FF} = 1$fF (i.e., none), and (b) $C_{\rm FF} = 680$pF.
+  Shortly after the transient load increase, the inductor phases 
+  become {\em aligned}.}
+  \label{fig:LTM4601A_ex2_transient_currents}
+\end{figure}
+
+% -----------------------------------------------------------------
+% Dual-phase Bode response LTspice circuit
+% -----------------------------------------------------------------
+%
+\begin{landscape}
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=200mm]
+    {figures/LTM4601A_ex2_bode_circuit.pdf}
+  \end{center}
+  \caption{LTM4601A 12V to 1.5V@24A dual-phase LTspice Bode response analysis circuit.}
+  \label{fig:LTM4601A_ex2_bode_circuit}
+\end{figure}
+\end{landscape}
+
+% -----------------------------------------------------------------
+% Dual-phase Bode response for CFF = 1fF
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,190)(0,0)
+    \put(15,100){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTM4601A_ex2a_bode_response_mag.pdf}}
+    \put(15,4){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTM4601A_ex2a_bode_response_phase.pdf}}
+    \put(75,  97){(a)}
+    \put(75,   0){(b)}
+  \end{picture}
+  \caption{LTM4601A 12V to 0.95V@24A dual-phase supply Bode response
+  ($C_{\rm FF} = 1$fF); (a) magnitude, and (b) phase. 
+  The open-loop gain has a cross-over frequency of 23kHz with
+  64-degrees of phase margin. The compensation network has
+  a gain of 8dB at the switching frequency, i.e., the
+  compensation signal contains the output voltage ripple 
+  amplified by 2.5 times.}
+  \label{fig:LTM4601A_ex2a_bode_response}
+\end{figure}
+
+% -----------------------------------------------------------------
+% Dual-phase Bode response for CFF = 680pF
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,190)(0,0)
+    \put(15,100){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTM4601A_ex2b_bode_response_mag.pdf}}
+    \put(15,4){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTM4601A_ex2b_bode_response_phase.pdf}}
+    \put(75,  97){(a)}
+    \put(75,   0){(b)}
+  \end{picture}
+  \caption{LTM4601A 12V to 0.95V@24A dual-phase supply Bode response
+  ($C_{\rm FF} = 680$pF); (a) magnitude, and (b) phase. 
+  The open-loop gain has a cross-over frequency of 55kHz with
+  104-degrees of phase margin. The compensation network has
+  a gain of 16dB at the switching frequency, i.e., the
+  compensation signal contains the output voltage ripple 
+  amplified by 6.3 times.}
+  \label{fig:LTM4601A_ex2b_bode_response}
+\end{figure}
+
+\clearpage
+% =================================================================
+\subsubsection{LTM4601A: 12V to 0.95V@12A (single-phase)}
+% =================================================================
+
+For a $V_{\rm IN} = 12$V to $V_{\rm OUT} = 0.95\text{V} \pm 30$mV at 
+$I_{\rm OUT} = 12$A single-phase power supply design, the
+{\em nominal} output ripple current of the LTM4601A is
+%
+\begin{equation}
+\Delta I_{\rm OUT} = \frac{V_{\rm OUT}}{f_{\rm SW}L}\left(
+1 - \frac{V_{\rm OUT}}{V_{\rm IN}}\right) =
+\frac{0.95}{850\text{k}\times0.47\mu}\left(
+1 - \frac{0.95}{12}\right) = 2.2\text{A}
+\end{equation}
+%
+where the nominal switching frequency, $f_{\rm SW} = 850$kHz, and
+the internal inductor value, $L = 0.47\mu$F.
+
+The {\em nominal} total output capacitance requirement is
+%
+\begin{equation}
+\begin{split}
+C_{\rm OUT} &> \frac{LI_{\rm STEP}^2}{2V_{\rm OUT}\Delta V_{\rm OUT}}\\
+&= \frac{0.47\mu\times 11^2}{2\times0.95\times25\text{m}}\\
+&= 1197\mu\text{F}
+\end{split}
+\end{equation}
+%
+%
+where $I_{\rm STEP}=11$A and $\Delta V_{\rm OUT} = 25$mV was
+used, since there will be additional ripple voltage due to 
+the output capacitance ESR.
+
+The {\em nominal} value of the output capacitance ESR is determined by
+the allowable output voltage dip during a load step from minimum current
+to maximum current, i.e.,
+%
+\begin{equation}
+R_{\rm ESR} = \frac{\Delta V_{\rm OUT}}{I_{\rm STEP}} = 
+\frac{25\text{m}}{11} = 2.3\text{m}\Omega
+\end{equation}
+%
+The output capacitance requirements can be met using three
+Sanyo POSCAP TPLF-series
+330$\mu$F ETPLF330M6 (2.5V, 6m$\Omega$, 4.7A$_{\rm RMS}$)
+in parallel with a 100$\mu$F ceramic.
+%
+The output voltage dip (peaking) for a 11A output current increase
+(decrease) will be about 22mV (28mV). The ripple voltage will
+be $2\text{m}\Omega \times 2.2\text{A} = 5$mV.
+
+The transient and Bode response circuits for the 0.95V@12A supply
+are similar to those shown for the 1.5V@20A supply in 
+Figures~\ref{fig:LTM4601A_ex1_transient_circuit}
+and~\ref{fig:LTM4601A_ex1_bode_circuit}, with the
+output capacitor multiplier increased \verb+Mout1 = 3+,
+and the set resistor changed to 103.5k$\Omega$
+(which can be implemented via the parallel resistors
+169k$\Omega$ and 267k$\Omega$).
+Figure~\ref{fig:LTM4601A_ex3_transient_response} shows the
+transient response, while
+Figures~\ref{fig:LTM4601A_ex3a_bode_response}
+and~\ref{fig:LTM4601A_ex3b_bode_response}
+show the Bode responses with $C_{\rm FF} = 1$fF and
+$C_{\rm FF} = 330$pF\footnote{The Bode analysis time
+was 1 hour and 5 minutes for each Bode response.}.
+
+The open-loop cross-over frequency of the nominal supply is
+a very low 16kHz (less than 1/50th of the switching frequency).
+The maximum gain that feed-forward compensation can implement
+is $V_{\rm OUT}/V_{\rm REF} = 1.58$ (4dB), which does not
+help the transient response significantly.
+Using the same feed-forward capacitance value as
+the 1.5V controller, $C_{\rm FF} = 330$pF, puts the
+zero and pole at 8kHz and 13kHz, which are both below the
+cross-over, providing maximum compensation gain.
+Alas, as the transient response and Bode response shows,
+this is simply not enough to improve the response of the
+supply.
+
+\clearpage
+% -----------------------------------------------------------------
+% Single-phase transients for CFF = 1fF and 330pF
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,205)(0,0)
+    \put(10,105){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTM4601A_ex3a_transient_response.pdf}}
+    \put(10,0){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTM4601A_ex3b_transient_response.pdf}}
+    \put(77,105){(a)}
+    \put(77, 0){(b)}
+  \end{picture}
+  \caption{LTM4601A 12V to 0.95V@12A single-phase LTspice transient response
+  for feed-forward capacitances of;
+  (a) $C_{\rm FF} = 1$fF (i.e., none), and (b) $C_{\rm FF} = 330$pF.
+  The feed-forward capacitance improves the transient response.}
+  \label{fig:LTM4601A_ex3_transient_response}
+\end{figure}
+
+% -----------------------------------------------------------------
+% Bode response for CFF = 1fF
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,190)(0,0)
+    \put(15,100){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTM4601A_ex3a_bode_response_mag.pdf}}
+    \put(15,4){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTM4601A_ex3a_bode_response_phase.pdf}}
+    \put(75,  97){(a)}
+    \put(75,   0){(b)}
+  \end{picture}
+  \caption{LTM4601A 12V to 0.95V@12A single-phase supply Bode response
+  ($C_{\rm FF} = 1$fF); (a) magnitude, and (b) phase. 
+  The open-loop gain has a cross-over frequency of 16kHz with
+  54-degrees of phase margin. The compensation network has
+  a gain of 12dB at the switching frequency, i.e., the
+  compensation signal contains the output voltage ripple 
+  amplified by 4.0 times.}
+  \label{fig:LTM4601A_ex3a_bode_response}
+\end{figure}
+
+% -----------------------------------------------------------------
+% Bode response for CFF = 330pF
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,190)(0,0)
+    \put(15,100){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTM4601A_ex3b_bode_response_mag.pdf}}
+    \put(15,4){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTM4601A_ex3b_bode_response_phase.pdf}}
+    \put(75,  97){(a)}
+    \put(75,   0){(b)}
+  \end{picture}
+  \caption{LTM4601A 12V to 0.95V@12A single-phase supply Bode response
+  ($C_{\rm FF} = 330$pF); (a) magnitude, and (b) phase. 
+  The open-loop gain has a cross-over frequency of 22kHz with
+  75-degrees of phase margin. The compensation network has
+  a gain of 16dB at the switching frequency, i.e., the
+  compensation signal contains the output voltage ripple 
+  amplified by 6.3 times.}
+  \label{fig:LTM4601A_ex3b_bode_response}
+\end{figure}
+
+\clearpage
+% =================================================================
+\subsubsection{LTM4601A discussion}
+% =================================================================
+
+The Linear Technology product guide {\em Power management solutions
+for Altera's FPGAs, CPLDs and Structured 
+ASICs}~\cite{Linear_Altera_Product_Guide_2012}
+promotes the LTM4601A for use as the core supply for Altera
+Stratix IV and V series FPGAs for input voltages of 12V
+and load currents of 5 to 10A. The analysis in this section
+has shown that the LTM4601A controller can only meet the output
+voltage regulation requirements of a 1.5V VCCIO bank of an FPGA.
+The controller transient response is too slow to meet the output voltage
+regulation requirements of the FPGA core supply.
+
+So why then does Linear Technology promote the
+use of this controller for powering Altera devices?
+If you read the LTM4601A data sheet carefully, you will see that
+the transient analysis of the controller is performed 
+with respect to a load step of {\em only} 6A
+(see Table 2 on page 18~\cite{Linear_LTM4601A_2011}).
+Under the restriction that the LTM4601A current
+handling is {\em derated} to only half the rated output current,
+the transient requirements for 0.95V@6A supply should be met.
+Re-running the 0.95V supply transient analysis for a constant current
+of 1A, and a load step of 6A, showed that the nominal supply still 
+failed, but the supply with feed-forward compensation met 
+the output voltage requirements.
+Unfortunately, a Stratix IV GT device with 530K logic
+elements can generate a 40A load step. A multi-phase
+LTM4601A controller would be pointless, as it would
+require 8 phases, about ten times the PCB real-estate
+as an LTC3855 (or LTC3880) dual-phase controller, and would
+likely suffer terminal phasing instabilities.
+

@@ -1,0 +1,520 @@
+% =================================================================
+\subsection{LTC1735: 12V to 3.3V@6A}
+% =================================================================
+
+Linear Technology power supply controller data sheets briefly
+describe how to compensate the control loop, and then refer the
+reader to Application Note AN76~\cite{Linear_AN76_1999} for more
+details. AN76 discusses controller compensation with respect to 
+the LTC1735, LTC1736, and LTC1628 controllers. The 
+LTC1735~\cite{Linear_LTC1735_1998} is used as the 
+controller in the following example design, so that the
+recommendations in AN76 can be reviewed with respect to an
+LTspice based design.
+
+% -----------------------------------------------------------------
+\subsubsection{Component Selection}
+% -----------------------------------------------------------------
+
+Power supply requirements;
+%
+\begin{itemize}
+\item Input supply voltage, $V_{\rm IN} = 12$V
+\item Output supply voltage, $V_{\rm OUT} = 3.3$V
+\item Output supply current, $I_{\rm OUT} = 6$A
+\item Output supply voltage ripple, $\Delta V_{\rm OUT} = \pm 165$mV ($\pm5$\%)
+\item Controller switching frequency, $f_{\rm SW} = 500$kHz
+\end{itemize}
+%
+The controller components are selected based on the data
+sheet procedure (see p11~\cite{Linear_LTC1735_1998});
+%
+\begin{enumerate}
+\item Select the output current-sense resistor.
+
+\begin{equation}
+R_{\rm SENSE} = \frac{50\text{mV}}{I_{\rm MAX}} =
+\frac{50\text{mV}}{7\text{A}} = 7.14\text{m}\Omega \approx  7\text{m}\Omega 
+\end{equation}
+%
+where $I_{\rm MAX} = I_{\rm OUT} + \Delta I_{\rm OUT}/2 \approx 7$A is calculated
+shortly.
+%
+\item Select $C_{\rm OSC}$ to select the controller operating
+frequency.
+
+The LTspice model was used to determine the capacitor value that
+resulted in a switching frequency of 500kHz, i.e., 
+$C_{\rm OSC} = 30.1$pF.
+
+\item Inductor selection.
+
+The {\em nominal} inductor value is determined based on a ripple current of
+30\% of the maximum output current, i.e., 
+$\Delta I_{\rm OUT} = 0.3I_{\rm OUT} = 2$A. The inductor value 
+is then
+%
+\begin{equation}
+L = \frac{V_{\rm OUT}}{f_{\rm SW}\Delta I_{\rm OUT}}\left(
+1 - \frac{V_{\rm OUT}}{V_{\rm IN}}\right) =
+\frac{3.3}{500\text{k}\times2}\left(
+1 - \frac{3.3}{12}\right) = 2.3925\mu\text{H} \approx 2.4\mu\text{H}
+\end{equation}
+%
+A review of Vishay/Dale IHLP series inductors showed there were
+no 2.4$\mu$H inductors that would support 6A of load current.
+However, there were 2.2$\mu$H and 3.3$\mu$H parts,
+eg., see the IHLP-2525CZ-01 and IHLP-3232DZ-01 series devices.
+For $L = 2.2\mu$H, $\Delta I_{\rm OUT} = 2.2$A and 
+$I_{\rm MAX} = 7.1$A, while for $L = 3.3\mu$H, 
+$\Delta I_{\rm OUT} = 1.5$A and $I_{\rm MAX} = 6.75$A.
+
+Although the larger inductor generates a smaller ripple current,
+it increases the amount of output capacitance required to meet
+the output voltage ripple requirement during a load transient,
+so the smaller $L = 2.2\mu$H inductor is selected.
+The LTC1735 does not support inductor DCR sensing, so the inductor
+resistance just has to be low enough to keep the inductor
+temperature increase under full load within reason.
+A 6A load will generate a temperature increase of under $30^\circ$C
+in either of the following Vishay/Dale devices;
+IHLP-2525CZ-01 2.2$\mu$H $R_{\rm DCR(max)} = 20\text{m}\Omega$ or
+IHLP-3232DZ-01 2.2$\mu$H $R_{\rm DCR(max)} = 17.7\text{m}\Omega$.
+
+\item Power MOSFET and D1 selection.
+
+The LTspice test jig for the LTC1735 used Vishay/Silconix
+Si4410DY MOSFETs for both the top and bottom MOSFETs, and
+used a 1N5818 diode over the synchronous (bottom) MOSFET.
+These components were selected for use in this example.
+
+Based on the LTC1735 data sheet equations, the power dissipated
+in the synchronous MOSFET will be
+%
+\begin{equation}
+P_{\rm SYNC} \approx \left(1 - \frac{V_{\rm OUT}}{V_{\rm IN}}\right)
+I_{\rm MAX}^2R_{\rm DS(ON)} = 0.725\times7.1^2\times20\text{m} = 0.73\text{W}
+\end{equation}
+%
+and with $\theta_{\rm JA} = 50^\circ$C/W, the junction temperature
+rise will be $37^\circ$C. The power dissipated in the main (top) MOSFET
+will be
+%
+\begin{equation}
+\begin{split}
+P_{\rm MAIN} &\approx \frac{V_{\rm OUT}}{V_{\rm IN}}I_{\rm MAX}^2R_{\rm DS(ON)} +
+kV_{\rm IN}I_{\rm MAX}C_{\rm RSS}f_{\rm SW}\\
+&= 0.275\times7.1^2\times20\text{m} + 
+1.7\times12^2\times7.1\times ??? \times 500\text{k}\\
+&= ???
+\end{split}
+\end{equation}
+%
+resulting in a junction temperature rise of ???
+
+Page 26 has an example with an Si4412ADY and uses Css = 100pF. See if
+I can find that data sheet. They then use an Si4410DY for the
+synchronous MOSFET ... ah, so perhaps change the LTSpice simulation?
+
+LTspice will be used to review these power dissipation estimates.
+
+\item Input capacitance selection.
+
+TODO: how do I calculate the value and ESR? Is it just based on
+RMS handling? p21 recommends 20 to 40$\mu$F with an ESR of 10 
+to 10m$\Omega$.
+
+\item Output capacitance selection.
+
+The {\em nominal} value of the output capacitance is determined by 
+the amount required to absorb the energy in the inductor during a
+load step from maximum current to minimum current, i.e.,
+%
+\begin{equation}
+\begin{split}
+C_{\rm OUT} &> \frac{LI_{\rm STEP}^2}
+{(V_{\rm OUT} + \Delta V_{\rm OUT})^2 - V_{\rm OUT}^2} 
+\approx \frac{LI_{\rm STEP}^2}{2V_{\rm OUT}\Delta V_{\rm OUT}}\\
+&= \frac{2.2\mu\times 6^2}{2\times3.3\times0.1}\\
+&= 120\mu\text{F}
+\end{split}
+\end{equation}
+%
+where $I_{\rm STEP}=6$A and $\Delta V_{\rm OUT} = 100$mV was
+used, since there will be additional ripple voltage due to 
+the output capacitance ESR.
+
+The {\em nominal} value of the output capacitance ESR is determined by
+the allowable output voltage dip during a load step from minimum current
+to maximum current, i.e.,
+%
+\begin{equation}
+R_{\rm ESR} = \frac{\Delta V_{\rm OUT}}{I_{\rm STEP}} = 
+\frac{0.1}{6} \approx 17\text{m}\Omega
+\end{equation}
+%
+
+The output capacitance requirements can be met using a single
+Sanyo POSCAP TPE-series capacitor, eg., one of
+150$\mu$F 6TPE150MI (6.3V, 18m$\Omega$, 2.8A$_{\rm RMS}$),
+220$\mu$F 6TPE220MI (6.3V, 18m$\Omega$, 2.8A$_{\rm RMS}$), or
+330$\mu$F 6TPE330MFL (6.3V, 15m$\Omega$, 3.1A$_{\rm RMS}$).
+
+To minimize the location of the power-stage LC resonance,
+the smallest value will be selected, i.e., 150$\mu$F with 
+an ESR of 18m$\Omega$. The output voltage dip for a 6A output
+current increase will be around 108mV, the output voltage peaking for
+a 6A output current decrease will be around 67mV, and the ripple
+voltage will be approximately 38mV.
+
+\item Output voltage.
+
+The output voltage is determined by the output feedback resistors
+and the controller reference voltage, 
+%
+\begin{equation}
+V_{\rm OUT} = V_{\rm REF}\left(1+\frac{R_{\rm a}}{R_{\rm b}}\right)
+\end{equation}
+%
+where $V_{\rm REF} = 0.8$V, $R_{\rm a}$ is the resistor from the
+output voltage to the controller $V_{\rm OSENSE}$ pin, and 
+$R_{\rm b}$ is the resistor from the controller $V_{\rm OSENSE}$ 
+pin to ground.
+
+The nearest pair of 1-percent resistor values for a desired
+output voltage of 3.3V are $R_{\rm a} = 3.57\text{k}\Omega$ and 
+$R_{\rm b} = 1.15\text{k}\Omega$, resulting in an output
+voltage of $V_{\rm OUT} = 3.28$V.
+
+\item Soft-start capacitance.
+
+A soft-start capacitance of $C_{\rm SS} = 800$pF was selected based
+on an analysis of the LTspice transient simulation.
+The simulation generates an output current load step once the 
+controller has completed the soft-start sequence and the output
+voltage has settled. The voltage on the soft-start capacitor 
+sets the output current-limit for a short time after the
+output voltage has settled. The output load step {\em should not}
+be applied until after the soft-start capacitor voltage has exceeded
+3.0V, otherwise the controller will enter current-limit, and
+the voltage on the compensation pin will not reflect the
+correct control loop dynamics.
+This effect is shown shortly during the transient discussion.
+
+\item Compensation components.
+
+Page 21 of the LTC1735 data sheet indicates to use the compensation
+components shown in Figure 1 as the starting point for the 
+compensation design~\cite{Linear_LTC1735_1998}, i.e., 
+$R_1  = 33\text{k}\Omega$, $C_1 = 330$pF, and
+$C_2 = 100$pF. These components create a compensation
+network with a zero frequency of
+%
+\begin{equation}
+f_{\rm Z} = \frac{1}{2\pi R_1 C_1} = 14.6\text{kHz}
+\end{equation}
+%
+and a pole frequency of
+%
+\begin{equation}
+f_{\rm P} = \frac{1}{2\pi R_1 C_1C_2/(C_1+C_2)}
+= 62.8\text{kHz}
+\end{equation}
+\end{enumerate}
+
+\clearpage
+% -----------------------------------------------------------------
+\subsubsection{Transient Response Analysis}
+% -----------------------------------------------------------------
+
+Figure~\ref{fig:LTC1735_ex1_transient_circuit} shows an LTspice
+circuit for analyzing the transient response of the
+LTC1735 12V to 3.3V@6A power supply design.
+Figure~\ref{fig:LTC1735_ex1_transient_response} shows the transient
+response of several controller waveforms. The output voltage starts
+to ramp up at $t = 0.93$ms, which is when the oscillator starts (the 
+oscillator can be viewed by adding \verb+V(osc)+ to the plot).
+The voltage on the soft-start capacitor sets the power-on 
+current-limit, which the compensation voltage (error amplifier 
+output), \verb+V(comp)+, then tracks;
+in Figure~\ref{fig:LTC1735_ex1_transient_response}(a) \verb+V(comp)+
+follows \verb+V(ss)-0.5+.
+
+Figure~\ref{fig:LTC1735_ex1_transient_response} shows the transient
+response for an output current load step from 1A to 6A (a 5A load step),
+applied at $t = 2.0$ms and removed at $t = 2.4$ms. 
+The load step is not applied until the soft-start voltage has 
+risen above 3V, as otherwise the soft-start function
+will limit \verb+V(comp)+  to \verb+V(ss)-0.5+, preventing the 
+response at \verb+V(comp)+ being used to investigate the control-loop
+dynamics. This relative timing of the soft-start and load step is only 
+a concern in simulation. A hardware test of the controller would
+apply the load step long after soft-start completes.
+
+Figure~\ref{fig:LTC1735_ex1_transient_response}(b) shows a zoomed view of
+the controller response to an output current load step. The compensation
+response, \verb+V(comp)+, has no overshoot or ringing, indicating
+the closed-loop response is stable with good phase margin.
+The inductor current ripple of $\Delta I_{\rm OUT} = 2.1$A
+can be seen in the inductor current waveform, \verb+I(L)+,
+in the bottom trace in Figure~\ref{fig:LTC1735_ex1_transient_response}(b).
+The AC component of the inductor current travels through the output
+capacitance, and generates the output ripple voltage over the output
+capacitance ESR.  This ripple voltage can be seen in \verb+V(out)+, in
+the top trace in Figure~\ref{fig:LTC1735_ex1_transient_response}(b). 
+The peak-to-peak output ripple voltage matches the expected value of 
+$2.1\text{A}\times18\text{m}\Omega=38$mV.
+The output voltage has an average value of 3.283V, as expected due to 
+the use of 1-percent output resistors to set the output voltage. 
+The output voltage dip and peaking during the application and removal
+of the output current step is about -140mV and +120mV respectively.
+These values are within the output voltage ripple specification,
+however, due to the offset of the output voltage, the voltage dip
+during the load current increase marginally violates the specification.
+This issue can be rectified by using $R_{\rm a} = 10.7\text{k}\Omega$
+and $R_{\rm b} = 3.4\text{k}\Omega$ for $V_{\rm OUT} = 3.318$V,
+or  $R_{\rm a} = 46.4\text{k}\Omega$
+and $R_{\rm b} = 14.7\text{k}\Omega$ for $V_{\rm OUT} = 3.325$V.
+With this change, the power supply meets the design requirements.
+
+The transient response of the output voltage changes depending on
+the control-loop bandwidth. If the control-loop has high bandwidth,
+then the output voltage dip would be dominated by the output load
+step generating a voltage drop over the output capacitor ESR. 
+The magnitude of the voltage dip for this example would have been
+$5\text{A}\times18\text{m}\Omega=90$mV.
+Since the output voltage dip of 140mV in 
+Figure~\ref{fig:LTC1735_ex1_transient_response}(b) is larger than
+the ESR voltage dip, the dip magnitude is being dominated by
+the controller response time.
+Although this dip could be reduced, since the output voltage
+ripple is within the specifications, it can be accepted.
+
+
+% -----------------------------------------------------------------
+% LTspice circuit
+% -----------------------------------------------------------------
+%
+\begin{landscape}
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=210mm]
+    {figures/LTC1735_ex1_transient_circuit.pdf}
+  \end{center}
+  \caption{LTC1735 12V to 3.3V@6A LTspice transient response analysis circuit.}
+  \label{fig:LTC1735_ex1_transient_circuit}
+\end{figure}
+\end{landscape}
+
+% -----------------------------------------------------------------
+% Transient response waveforms
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,205)(0,0)
+    \put(10,105){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTC1735_ex1_transient_response_a.pdf}}
+    \put(10,0){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTC1735_ex1_transient_response_b.pdf}}
+    \put(77,105){(a)}
+    \put(77, 0){(b)}
+  \end{picture}
+  \caption{LTC1735 12V to 3.3V@6A supply LTspice transient response;
+  (a) from $t=0$, and (b) zoomed view from $t=1.7$ms to 2.7ms.}
+  \label{fig:LTC1735_ex1_transient_response}
+\end{figure}
+
+\clearpage
+% -----------------------------------------------------------------
+\subsubsection{Frequency Response Analysis}
+% -----------------------------------------------------------------
+
+This section uses an LTspice circuit to measure the power-supply
+open-loop, control-to-output, compensation, and power-stage
+frequency response. The frequency responses are then analyzed to
+determine whether any circuit adjustments are required.
+
+Figure~\ref{fig:LTC1735_ex1_bode_circuit} shows an LTspice
+circuit for analyzing the Bode response of the
+LTC1735 12V to 3.3V@6A power supply design. The {\em frequency}
+response of the circuit is analyzed using multiple transient
+({\em time}) analysis runs. The frequency response analysis
+must be performed using multiple transient analysis runs, as
+switched-mode power supplies are non-linear devices, and 
+there is no linearized small-signal AC model (which is the model
+needed for an LTspice \verb+.ac+ analysis). The frequency response
+of a {\em physical} power supply can be measured using a
+{\em frequency response analyzer} (FRA). The circuit in
+Figure~\ref{fig:LTC1735_ex1_bode_circuit} uses the same
+technique as an FRA; the feedback loop is broken at a 
+low-impedance point, a small amplitude sine wave is injected 
+into the loop, and the response at various locations around the
+control loop is measured. The LTspice \verb+.measure+ statements in 
+Figure~\ref{fig:LTC1735_ex1_bode_circuit} calculate the
+gain and phase at each measurement frequency in the \verb+.step+
+list, for the locations \verb+A+, \verb+B+, \verb+C+, and \verb+D+
+in the circuit. The measurements at those locations are then 
+converted into open-loop, control-to-output, compensation, and
+LC response measurements.
+
+Figure~\ref{fig:LTC1735_ex1_bode_response} shows the Bode response
+for the circuit in Figure~\ref{fig:LTC1735_ex1_bode_circuit}.
+The Bode response shows that the loop gain has a
+cross-over frequency of 46kHz with 60-degrees of phase margin.
+This is consistent with the good transient response observed in
+Figure~\ref{fig:LTC1735_ex1_transient_response}. The Bode response
+allows you to investigate the main control loop components;
+the control-to-output (including the current-feedback loop) 
+and the compensation responses.
+
+The current-feedback loop converts the resonant LC response of 
+the power-stage into a control-to-output response that is more
+like a single-pole response (at least at low-frequencies). 
+The control-to-output phase is a good indicator of how well the 
+current-loop has been designed.
+%
+Figure~\ref{fig:LTC1735_ex1_bode_response}(b) shows how the close to
+-180-degree phase in the LC response is reduced to under -90-degrees
+in the control-to-output loop. This indicates a reasonable 
+closed-loop current-feedback response.
+
+The magnitude and phase of the control-to-output loop can be adjusted
+using the current-sense resistor. A slightly smaller resistor will
+cause slightly less signal to be fed back into the current-loop,
+causing the control-to-output gain to increase and the control-to-output
+phase to decrease. The increase in control-to-output gain can be
+used to increase the cross-over frequency, however, due to the loss
+of control-to-output phase, the compensation phase must be adjusted
+to provide sufficient phase-margin. This adjustment in compensation
+phase might not be possible due to the desire to keep the compensation
+gain at the switching frequency at or below 0dB. Hence, there is a
+tradeoff in the design of the current-loop and compensation
+responses.
+
+The compensation response in Figure~\ref{fig:LTC1735_ex1_bode_response}
+meets the typical requirements for a compensation network; it
+provides sufficient mid-band gain and phase to produce an
+open-loop response with a high cross-over frequency with sufficient
+phase-margin, and the gain at the switching frequency is no more than
+0dB (this results in the same amount of ripple voltage on the error
+amplifier output as on the power supply output).
+Table~\ref{fig:LTC1735_ex1_compensation} shows the results of 
+{\em designing} a compensation network using a MATLAB script.
+The MATLAB script imports the control-to-output gain measured 
+using LTspice, and then allows the user to adjust the compensation
+response by specifying the desired cross-over frequency and
+zero and pole locations. The script then calculates the nearest
+1-percent resistor value and standard capacitor values.
+Table~\ref{fig:LTC1735_ex1_compensation} shows the compensation
+parameters for the circuit in 
+Figure~\ref{fig:LTC1735_ex1_bode_response} and an alternative
+set of parameters (that result in a very similar Bode response).
+A transient response using the alternative parameters appeared
+identical to that shown in Figure~\ref{fig:LTC1735_ex1_transient_response}.
+The fact that the compensation could not be improved significantly
+is a reflection that the original compensation was reasonable.
+
+\clearpage
+% -----------------------------------------------------------------
+% LTspice circuit
+% -----------------------------------------------------------------
+%
+\begin{landscape}
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=200mm]
+    {figures/LTC1735_ex1_bode_circuit.pdf}
+  \end{center}
+  \caption{LTC1735 12V to 3.3V@6A LTspice Bode response analysis circuit.}
+  \label{fig:LTC1735_ex1_bode_circuit}
+\end{figure}
+\end{landscape}
+
+\clearpage
+% -----------------------------------------------------------------
+% Bode response
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,190)(0,0)
+    \put(15,100){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC1735_ex1_bode_response_mag.pdf}}
+    \put(15,4){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC1735_ex1_bode_response_phase.pdf}}
+    \put(75,  97){(a)}
+    \put(75,   0){(b)}
+  \end{picture}
+  \caption{LTC1735 12V to 3.3V@6A supply Bode response;
+  (a) magnitude, and (b) phase. The LC and compensation
+  {\em calculated} responses are shown by the black and red
+  solid lines, while the LTspice {\em simulated} responses are
+  shown by the black and red crosses. The 
+  control-to-output and open-loop LTspice {\em simulated} responses
+  are shown using both solid lines and crosses.
+  The open-loop gain has a cross-over frequency of 46kHz with
+  60-degrees of phase margin.}
+  \label{fig:LTC1735_ex1_bode_response}
+\end{figure}
+
+\clearpage
+% -----------------------------------------------------------------
+% Compensator design
+% -----------------------------------------------------------------
+%
+\begin{table}
+\caption{LTC1735 12V to 3.3V@6A supply compensation design.}
+\label{fig:LTC1735_ex1_compensation}
+\begin{center}
+\begin{tabular}{|l|c|c|}
+\hline
+\rule{0cm}{4mm}Component or Parameter & \multicolumn{2}{c|}{Compensation Design Number}\\
+\cline{2-3}
+\rule{0cm}{4mm}     & \#1 & \#2\\
+\hline
+\hline
+\multicolumn{3}{|l|}{\bf Compensation response}\\
+\hline
+& \hspace {20mm} &  \hspace {20mm} \\
+$R_1$       & 33.0k$\Omega$ & 40.2k$\Omega$ \\
+$C_1$       &  330pF        &  270pF        \\
+$C_2$       &  100pF        &  100pF        \\
+&&\\
+$f_{\rm Z}$ & 14.6kHz       & 14.7kHz       \\
+$f_{\rm P}$ & 62.8kHz       & 54.3kHz       \\
+&&\\
+Compensation gain at $f_{\rm SW}$ & 0.01dB & 0.02dB\\
+&&\\
+\hline
+\multicolumn{3}{|l|}{\bf Open-loop response}\\
+\hline
+&&\\
+Cross-over frequency    & 47.0kHz      & 49.8kHz      \\ 
+Cross-over phase-margin & 61.0$^\circ$ & 56.8$^\circ$ \\
+&&\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\clearpage
+% -----------------------------------------------------------------
+\subsubsection{Review and Discussion}
+% -----------------------------------------------------------------
+
+\noindent{\bf TODO}:
+\begin{itemize}
+\item Review the power dissipation in the MOSFETs.
+\item Can I get an efficiency report?
+\item Add a comment about output loads based on current sinks rather
+than resistive loads, per the comments in~\cite{Linear_DC247_1999}
+\item Find ESR of ceramic caps and add a couple on the output.
+\end{itemize}
+

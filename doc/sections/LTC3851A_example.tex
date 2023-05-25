@@ -1,0 +1,889 @@
+% =================================================================
+\subsection{LTC3851A: 12V to 1.5V@15A}
+% =================================================================
+
+The Linear Technology web page for the LTC1735 indicates that
+the device is not recommended for new designs, and recommends
+using the LTC3851 controller, which in turn recommends using
+the LTC3851A~\cite{Linear_LTC3851A_2010}. The power supply 
+design in this section is based on the reference design that
+can be downloaded from the
+\href{http://www.linear.com/product/LTC3851A}{LTC3851A web page}.
+
+% -----------------------------------------------------------------
+\subsubsection{Component Selection}
+% -----------------------------------------------------------------
+
+Power supply requirements;
+%
+\begin{itemize}
+\item Input supply voltage, $V_{\rm IN} = 12$V
+\item Output supply voltage, $V_{\rm OUT} = 1.5$V
+\item Output supply current, $I_{\rm OUT} = 15$A
+\item Output supply voltage ripple, $\Delta V_{\rm OUT} = \pm 75$mV ($\pm5$\%)
+\item Controller switching frequency, $f_{\rm SW} = 500$kHz
+\end{itemize}
+%
+The controller components are selected based on the data
+sheet procedure (see p11~\cite{Linear_LTC3851A_2010});
+%
+\begin{enumerate}
+\item Select the output current-sense resistor.
+
+\begin{equation}
+R_{\rm SENSE} = 0.8\cdot\frac{V_{\rm MAX}}{(I_{\rm OUT} + \Delta I_{\rm OUT}/2)} =
+0.8\cdot\frac{53\text{mV}}{17.8\text{A}} = 2.38\text{m}\Omega \approx  2\text{m}\Omega 
+\end{equation}
+%
+where $I_{\rm MAX} = I_{\rm OUT} + \Delta I_{\rm OUT}/2 \approx 17.8$A is
+calculated shortly.
+%
+\item Select $R_{\rm FREQ}$ to select the controller operating
+frequency.
+
+$R_{\rm FREQ} = 60\text{k}\Omega$ selects a switching frequency of
+500kHz (p4~\cite{Linear_LTC3851A_2010}). The LTspice model was confirmed
+to generate this switching frequency.
+
+\item Inductor selection.
+
+The {\em nominal} inductor value is determined based on a ripple current of
+30\% of the maximum output current, i.e., 
+$\Delta I_{\rm OUT} = 0.3I_{\rm OUT} = 5$A. The inductor value 
+is then
+%
+\begin{equation}
+L = \frac{V_{\rm OUT}}{f_{\rm SW}\Delta I_{\rm OUT}}\left(
+1 - \frac{V_{\rm OUT}}{V_{\rm IN}}\right) =
+\frac{1.5}{500\text{k}\times5}\left(
+1 - \frac{1.5}{12}\right) = 0.525\mu\text{H} \approx 0.5\mu\text{H}
+\end{equation}
+%
+A review of Vishay/Dale IHLP series inductors showed that the nearest
+value is the IHLP-3232DZ-01 $0.47\mu\text{H}$ 
+($R_{\rm DCR(MAX)} = 2.62\text{m}\Omega$).
+For $L = 0.47\mu$H, $\Delta I_{\rm OUT} = 5.8$A and 
+$I_{\rm MAX} = 17.8$A. The IHLP-3232DZ-01 inductor can easily
+support a peak load current of 17.8A, resulting in a temperature 
+rise of about $20^\circ$C.
+
+The LTC3851A supports current-sensing via either a current-sense
+resistor, or via inductor DCR sensing. The DCR of the $0.47\mu\text{H}$
+is slightly higher than the target sense resistance of $2\text{m}\Omega$,
+so the DCR sense network needs to attenuate the current-sense
+voltage by about 0.8. The use of a sense resistor versus the inductor
+DCR will be compared during power (efficiency) analysis.
+
+\item Power MOSFET and D1 selection.
+
+The LTspice example downloaded from the LTC3851A web page uses a
+Renesas RJK0305DP for the main (top) MOSFET 
+($R_{\rm DS(ON)} = 6.7\text{m}\Omega$), and a Renesas RJK0301DP
+for the synchronous (bottom) MOSFET ($R_{\rm DS(ON)} = 2.3\text{m}\Omega$).
+These components are also used in this example.
+
+Based on the LTC3851A data sheet equations, the power dissipated
+in the synchronous MOSFET will be
+%
+\begin{equation}
+P_{\rm SYNC} \approx \left(1 - \frac{V_{\rm OUT}}{V_{\rm IN}}\right)
+I_{\rm MAX}^2R_{\rm DS(ON)} = 0.875\times17.8^2\times2.3\text{m} = 0.64\text{W}
+\end{equation}
+%
+and with a channel-to-case thermal resistance of $\theta_{\rm ch-C} = 1.93^\circ$C/W,
+the channel temperature rise will be $1.2^\circ$C. The power dissipated in the
+main (top) MOSFET will be
+%
+\begin{equation}
+\begin{split}
+P_{\rm MAIN} &\approx \frac{V_{\rm OUT}}{V_{\rm IN}}I_{\rm MAX}^2R_{\rm DS(ON)} +
+\frac{V_{\rm IN}^2I_{\rm MAX}R_{\rm DR}C_{\rm MILLER}}{2}\cdot
+\left[ \frac{1}{V_{\rm INTVCC} - V_{\rm TH(MIN)}} + \frac{1}{V_{\rm TH(MIN)}}\right]\\
+&= 0.125\times17.8^2\times6.7\text{m} +  ???\\
+&= ???
+\end{split}
+\end{equation}
+%
+resulting in a junction temperature rise of ???
+
+{\bf TODO}: fill in these numbers.
+
+LTspice will be used to review these power dissipation estimates.
+
+\item Input capacitance selection.
+
+TODO: how do I calculate the value and ESR? Is it just based on
+RMS handling? LTC3851A data sheet p17 has comments on ESR, but
+nothing on the amount of capacitance.
+
+\item Output capacitance selection.
+
+The {\em nominal} value of the output capacitance is determined by 
+the amount required to absorb the energy in the inductor during a
+load step from maximum current to minimum current, i.e.,
+%
+\begin{equation}
+\begin{split}
+C_{\rm OUT} &> \frac{LI_{\rm STEP}^2}
+{(V_{\rm OUT} + \Delta V_{\rm OUT})^2 - V_{\rm OUT}^2} 
+\approx \frac{LI_{\rm STEP}^2}{2V_{\rm OUT}\Delta V_{\rm OUT}}\\
+&= \frac{0.47\mu\times 15^2}{2\times1.5\times60\text{m}}\\
+&= 588\mu\text{F}
+\end{split}
+\end{equation}
+%
+where $I_{\rm STEP}=15$A and $\Delta V_{\rm OUT} = 60$mV was
+used, since there will be additional ripple voltage due to 
+the output capacitance ESR.
+
+The {\em nominal} value of the output capacitance ESR is determined by
+the allowable output voltage dip during a load step from minimum current
+to maximum current, i.e.,
+%
+\begin{equation}
+R_{\rm ESR} = \frac{\Delta V_{\rm OUT}}{I_{\rm STEP}} = 
+\frac{75\text{m}}{15} \approx 5\text{m}\Omega
+\end{equation}
+%
+The output capacitance requirements can be met using a pair
+of 330$\mu$F 2R5TPE330M9 (2.5V, 9m$\Omega$, 3.9A$_{\rm RMS}$)
+Sanyo POSCAP TPE-series capacitors.
+%
+The output voltage dip for a 15A output current increase will
+be around 68mV, the output voltage peaking for a 15A output
+current decrease will be around 54mV, and the ripple
+voltage will be approximately 25mV.
+
+\item Output voltage.
+
+The output voltage is determined by the output feedback resistors
+and the controller reference voltage, 
+%
+\begin{equation}
+V_{\rm OUT} = V_{\rm REF}\left(1+\frac{R_{\rm a}}{R_{\rm b}}\right)
+\end{equation}
+%
+where $V_{\rm REF} = 0.8$V, $R_{\rm a}$ is the resistor from the
+output voltage to the controller $V_{\rm OSENSE}$ pin, and 
+$R_{\rm b}$ is the resistor from the controller $V_{\rm OSENSE}$ 
+pin to ground.
+
+The LTC3851A example design used $R_{\rm a} = 43.2\text{k}\Omega$ and 
+$R_{\rm b} = 49.9\text{k}\Omega$, resulting in an output
+voltage of $V_{\rm OUT} = 1.493$V.
+%
+The nearest pair of 1-percent resistor values for an output voltage
+of 1.5V are actually $R_{\rm a} = 9.31\text{k}\Omega$ and 
+$R_{\rm b} = 10.7\text{k}\Omega$, resulting in an output
+voltage of $V_{\rm OUT} = 1.496$V.
+%
+This design retains the same resistor values as the LTC3851A example.
+
+\item Soft-start capacitance.
+
+The soft-start time is 
+%
+\begin{equation}
+t_{\rm SS} = 0.8\text{V}\cdot\frac{C_{\rm SS}}{1.0\mu\text{A}}
+\end{equation}
+%
+A soft-start capacitance of $C_{\rm SS} = 2$nF was selected 
+to give a soft-start time of 1.6ms. This results in the 
+LTspice simulation having similar power-on timing to the
+LTC1735 example.
+
+The voltage on the soft-start capacitor ramps the output voltage
+during power on, and thus limits the power-on current.
+The ramping of the soft-start voltage and the output voltage
+can be viewed in the LTspice simulation by plotting the
+soft-start voltage \verb+V(ss)+ and the voltage on the
+error amplifier feedback input \verb+V(fb)+.
+
+\item Compensation components.
+
+The LTC3851A example design uses the compensation components
+$R_1  = 6.49\text{k}\Omega$, $C_1 = 3300$pF, and
+$C_2 = 470$pF. These components create a compensation
+network with a zero frequency of
+%
+\begin{equation}
+f_{\rm Z} = \frac{1}{2\pi R_1 C_1} = 7.4\text{kHz}
+\end{equation}
+%
+and a pole frequency of
+%
+\begin{equation}
+f_{\rm P} = \frac{1}{2\pi R_1 C_1C_2/(C_1+C_2)}
+= 59.6\text{kHz}
+\end{equation}
+\end{enumerate}
+
+\clearpage
+% -----------------------------------------------------------------
+\subsubsection{Transient Response Analysis}
+% -----------------------------------------------------------------
+
+Figure~\ref{fig:LTC3851A_ex1_transient_circuit} shows an LTspice
+circuit for analyzing the transient response of the
+LTC3851A 12V to 1.5V@15A power supply design.
+Figure~\ref{fig:LTC3851A_ex1_transient_response} shows the transient
+response of several controller waveforms. 
+The top trace in Figure~\ref{fig:LTC3851A_ex1_transient_response}
+show the output voltage, \verb+V(out)+, the feedback voltage
+\verb+V(fb)+, and the soft-start voltage, \verb+V(ss)+. The
+feedback voltage tracks the soft-start voltage until the
+feedback voltage reaches the reference voltage of 
+$V_{\rm REF} = 0.8$V, after which point, the output voltage is
+in regulation. During the soft-start power-on time, the
+error amplifier (compensation) output voltage, \verb+V(comp)+,
+and the inductor current, \verb+I(L)+ are well below their
+maximum values. If these signals were observed to be too high,
+then the soft-start time would need to be increased.
+
+Figure~\ref{fig:LTC3851A_ex1_transient_response} shows the transient
+response for an output current load step from 1A to 15A (a 14A load step),
+applied at $t = 2.0$ms and removed at $t = 2.4$ms. 
+Figure~\ref{fig:LTC3851A_ex1_transient_response}(b) shows a zoomed view of
+the controller response to the load step. The compensation
+response, \verb+V(comp)+, has no overshoot or ringing, indicating
+the closed-loop response is stable with good phase margin.
+The inductor current ripple of $\Delta I_{\rm OUT} = 5.6$A
+can be seen in the inductor current waveform, \verb+I(L)+,
+in the bottom trace in Figure~\ref{fig:LTC3851A_ex1_transient_response}(b).
+The AC component of the inductor current travels through the output
+capacitance, and generates the output ripple voltage over the output
+capacitance ESR.  This ripple voltage can be seen in \verb+V(out)+, in
+the top trace in Figure~\ref{fig:LTC3851A_ex1_transient_response}(b). 
+The peak-to-peak output ripple voltage matches the expected value of 
+$5.6\text{A}\times4.5\text{m}\Omega=25$mV.
+The output voltage has an average value of 1.493V.
+The output voltage dip and peaking during the application and removal
+of the output current step is about -110mV and +90mV respectively.
+The top plot in
+Figure~\ref{fig:LTC3851A_ex1_transient_response}(b)
+contains traces showing the voltage transient limits at
+1.425V and 1.575V. The output current load transient causes
+output voltage transients that both violate the power supply
+output voltage specification.
+
+The transient response in 
+Figure~\ref{fig:LTC3851A_ex1_transient_response}(b) is
+control loop limited, i.e., the loop bandwidth needs to be increased
+so that the voltage dip transient is output capacitor ESR dominated.
+The next section measures the power supply control loop to determine
+whether the control loop bandwidth can be increased, while maintaining
+adequate phase margin.
+
+% -----------------------------------------------------------------
+% LTspice circuit
+% -----------------------------------------------------------------
+%
+\begin{landscape}
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=210mm]
+    {figures/LTC3851A_ex1_transient_circuit.pdf}
+  \end{center}
+  \caption{LTC3851A 12V to 1.5V@15A LTspice transient response analysis circuit.}
+  \label{fig:LTC3851A_ex1_transient_circuit}
+\end{figure}
+\end{landscape}
+
+% -----------------------------------------------------------------
+% Transient response waveforms
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,205)(0,0)
+    \put(10,105){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTC3851A_ex1_transient_response_a.pdf}}
+    \put(10,0){
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTC3851A_ex1_transient_response_b.pdf}}
+    \put(77,105){(a)}
+    \put(77, 0){(b)}
+  \end{picture}
+  \caption{LTC3851A 12V to 1.5V@15A supply LTspice transient response;
+  (a) from $t=0$, and (b) zoomed view from $t=1.7$ms to 2.7ms.}
+  \label{fig:LTC3851A_ex1_transient_response}
+\end{figure}
+
+\clearpage
+% -----------------------------------------------------------------
+\subsubsection{Frequency Response Analysis}
+% -----------------------------------------------------------------
+
+Figure~\ref{fig:LTC3851A_ex1_bode_circuit} shows an LTspice
+circuit for analyzing the Bode response of the
+LTC3851A 12V to 1.5V@15A power supply design.
+Figure~\ref{fig:LTC3851A_ex1_bode_response} shows the Bode 
+response.
+The Bode response shows that the loop gain has a
+cross-over frequency of 41kHz with 69-degrees of phase margin.
+This is consistent with the transient response observed in
+Figure~\ref{fig:LTC3851A_ex1_transient_response}. 
+The problem with the transient response though, is that it
+does not meet the output voltage regulation requirements.
+The Bode magnitude plot in
+Figure~\ref{fig:LTC3851A_ex1_bode_response}(a) shows that the
+compensation response has less than 0dB gain at the switching
+frequency, indicating that there is some room for 
+compensation network adjustment.
+
+Table~\ref{fig:LTC3851A_ex1_compensation} shows the results of 
+{\em designing} a compensation network using a MATLAB script.
+The MATLAB script imports the control-to-output gain measured 
+using LTspice, and then allows the user to adjust the compensation
+response by specifying the desired cross-over frequency and
+zero and pole locations. The script then calculates the nearest
+1-percent resistor value and standard capacitor values.
+Table~\ref{fig:LTC3851A_ex1_compensation} shows the compensation
+parameters for the circuit in 
+Figure~\ref{fig:LTC3851A_ex1_bode_response} and an alternative
+set of parameters.
+
+To improve the transient response of the power supply, the 
+circuit in Figure~\ref{fig:LTC3851A_ex1_bode_circuit} was modified;
+%
+\begin{itemize}
+\item The feedback resistors were changed to 
+$R_{\rm a} = 1.65\text{k}\Omega$ and 
+$R_{\rm b} = 1.87\text{k}\Omega$. This results in a slightly higher
+output voltage of $V_{\rm OUT} = 1.506$V. This change helps 
+make the transient response symmetric.
+\item The compensation components were changed per 
+Table~\ref{fig:LTC3851A_ex1_compensation} design number \#2.
+\item A 100$\mu$F ceramic output capacitor was added
+(TDK C5750X5R0J107M X5R $R_{\rm ESR} = 2\text{m}\Omega$)~\footnote{LTspice
+has an internal database of capacitor manufacturer parts that is
+accessed by right-clicking on the capacitor schematic symbol, and
+then clicking on the {\em Select Capacitor} button.}.
+\end{itemize}
+%
+The transient response of the modified circuit is shown in
+Figure~\ref{fig:LTC3851A_ex2_transient_response}, while 
+Figure~\ref{fig:LTC3851A_ex2_bode_response} shows the Bode response.
+A comparison of the original transient response with the new
+shows that the new response reacts much quicker to the load step
+due to the increase in loop bandwidth and in the compensation
+zero frequency, but has slightly more ringing in the response
+due to the slightly lower phase-margin.
+
+The modified power supply design has an improved transient response that
+marginally violates the output voltage specification for the design.
+At this point, the performance could be accepted subject to hardware
+testing, or additional simulation could be performed. The next
+section discussions some of the options.
+
+\clearpage
+% -----------------------------------------------------------------
+% LTspice circuit
+% -----------------------------------------------------------------
+%
+\begin{landscape}
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=200mm]
+    {figures/LTC3851A_ex1_bode_circuit.pdf}
+  \end{center}
+  \caption{LTC3851A 12V to 1.5V@15A LTspice Bode response analysis circuit.}
+  \label{fig:LTC3851A_ex1_bode_circuit}
+\end{figure}
+\end{landscape}
+
+\clearpage
+% -----------------------------------------------------------------
+% Bode response
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,190)(0,0)
+    \put(15,100){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3851A_ex1_bode_response_mag.pdf}}
+    \put(15,4){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3851A_ex1_bode_response_phase.pdf}}
+    \put(75,  97){(a)}
+    \put(75,   0){(b)}
+  \end{picture}
+  \caption{LTC3851A 12V to 1.5V@15A supply Bode response;
+  (a) magnitude, and (b) phase. The LC and compensation
+  {\em calculated} responses are shown by the black and red
+  solid lines, while the LTspice {\em simulated} responses are
+  shown by the black and red crosses. The 
+  control-to-output and open-loop LTspice {\em simulated} responses
+  are shown using both solid lines and crosses.
+  The open-loop gain has a cross-over frequency of 41kHz with
+  69-degrees of phase margin.}
+  \label{fig:LTC3851A_ex1_bode_response}
+\end{figure}
+
+\clearpage
+% -----------------------------------------------------------------
+% Compensation design
+% -----------------------------------------------------------------
+%
+\begin{table}[p]
+\caption{LTC3851A 12V to 1.5V@15A supply compensation design.}
+\label{fig:LTC3851A_ex1_compensation}
+\begin{center}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\rule{0cm}{4mm}Component or Parameter & \multicolumn{4}{c|}{Compensation Design Number}\\
+\cline{2-5}
+\rule{0cm}{4mm}     & \#1 & \#2 (3,4) & \#5 & \#6\\
+\hline
+\hline
+\multicolumn{5}{|l|}{\bf Compensation response}\\
+\hline
+& \hspace {20mm} &  \hspace {20mm} &  \hspace {20mm} &  \hspace {20mm} \\
+$R_1$       & 6.49k$\Omega$ &  7.5k$\Omega$ &  7.15k$\Omega$ &  7.15k$\Omega$\\
+$C_1$       & 3300pF        &  680pF        &  560pF         &  2700pF       \\
+$C_2$       &  470pF        &  330pF        &  180pF         &  180pF        \\
+&&&&\\
+$f_{\rm Z}$ &  7.4kHz       & 31.2kHz       & 39.8kHz        &  8.24kHz       \\
+$f_{\rm P}$ & 59.6kHz       & 95.5kHz       & 163.4kHz       & 131.9kHz      \\
+&&&&\\
+Compensation gain at $f_{\rm SW}$ & -2.84dB & 0.07dB & 5.06dB & 5.19dB\\
+&&&&\\
+\hline
+\multicolumn{5}{|l|}{\bf Open-loop response}\\
+\hline
+&&&&\\
+Cross-over frequency    & 41.6kHz      & 49.4kHz      & 71.6kHz      & 76.1kHz      \\ 
+Cross-over phase-margin & 69.9$^\circ$ & 57.0$^\circ$ & 56.2$^\circ$ & 72.0$^\circ$ \\
+&&&&\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+% -----------------------------------------------------------------
+% Transient response (Example#2)
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTC3851A_ex2_transient_response.pdf}
+  \end{center}
+  \caption{LTC3851A 12V to 1.5V@15A supply transient response for design \#2.
+  The circuit modifications were; a slight increase in the output voltage,
+  a new compensation network, and a ceramic output capacitor was added.
+  Compare the response in this figure to that in
+  Figure~\ref{fig:LTC3851A_ex1_transient_response}(b).
+  Figure~\ref{fig:LTC3851A_ex2_bode_response} shows the Bode response.}
+  \label{fig:LTC3851A_ex2_transient_response}
+\end{figure}
+
+\clearpage
+% -----------------------------------------------------------------
+% Bode response (Example#2)
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,190)(0,0)
+    \put(15,100){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3851A_ex2_bode_response_mag.pdf}}
+    \put(15,4){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3851A_ex2_bode_response_phase.pdf}}
+    \put(75,  97){(a)}
+    \put(75,   0){(b)}
+  \end{picture}
+  \caption{LTC3851A 12V to 1.5V@15A supply Bode response for design \#2;
+  (a) magnitude, and (b) phase. The modified circuit added additional
+  output capacitance, which causes the control-to-output response to
+  move lower in frequency. The open-loop gain has a cross-over frequency
+  of 43kHz with 48-degrees of phase margin. The slight ringing seen in the
+  transient response is a reflection of the lower phase-margin.}
+  \label{fig:LTC3851A_ex2_bode_response}
+\end{figure}
+
+\clearpage
+% -----------------------------------------------------------------
+\subsubsection{Control Loop Optimization}
+% -----------------------------------------------------------------
+
+The transient response in Figure~\ref{fig:LTC3851A_ex2_transient_response}
+marginally violates the voltage specification of the design.
+This violation can be avoided by increasing the loop bandwidth.
+The loop bandwidth is increased by first modifying the current-loop
+gain, and then adjusting the compensation network.
+
+The compensation voltage waveform in Figure~\ref{fig:LTC3851A_ex2_transient_response},
+\verb+V(comp)+, peaks at slightly over 1.4V. The LTC3851A data sheet
+{\em Maximum Peak Current Sense Threshold vs $I_{\rm TH}$ Voltage} plot 
+(p6~\cite{Linear_LTC3851A_2010}) shows that 1.4V is close to the limit
+of the linear region of the error amplifier output.
+The compensation voltage response can be reduced by reducing the current feedback.
+Reducing the current feedback causes a slight increase
+in the control-to-output gain, due to the lowered current feedback,
+causing a slight increase in the open-loop gain cross-over frequency.
+The LTC3851A has two options for adjusting the current feedback;
+the $I_{\rm LIM}$ pin and the current sense resistance. These two
+options can be considered coarse adjustment and fine adjustment.
+
+Coarse adjustment of the current feedback can be controlled using
+the LTC3851A $I_{\rm LIM}$ pin; 0V, floating, and $\text{INTV}_{\rm CC}$
+select the {\em nominal} current-sense limits of 30mV, 53mV, and 80mV. 
+These correspond to high, medium, and low current gain settings.
+The effect of the $I_{\rm LIM}$ pin can be understood by considering
+the power supply just analyzed. The supply was designed for the
+53mV current-sense range ($I_{\rm LIM}$ floating), resulting in the
+selection of a 2m$\Omega$ current-sense resistor. If the
+80mV current-sense range ($I_{\rm LIM}$ connected to $\text{INTV}_{\rm CC}$)
+is now selected {\em without} changing the sense resistor, then the
+compensation voltage waveform will be scaled by $53\text{mV}/80\text{mV} = 0.663$,
+i.e., the current-sense gain has been lowered.
+
+Fine adjustment of the current feedback by adjusting the
+current-sense resistance, is not very practical in designs that use an
+actual {\em resistor} for current-sensing, due to the fact that the
+low-ohmic value resistors come in limited increments. Current-sensing using
+inductor DC resistance (DCR) sensing is much more flexible, as the RC-sense network
+can also include attenuation control, providing the flexibility
+to scale the current-sense gain arbitrarily. 
+%
+For example, the power supply just analyzed can be converted to use 
+inductor DCR sensing. The design of a DCR sensing network is discussed
+on pages 12 and 13 of the LTC3851A data 
+sheet~\cite{Linear_LTC3851A_2010}. Defining $\alpha$ as the required
+current-sense attenuation, and using the reference designators
+from Figure 2 in the data sheet, the component values are calculated
+via;
+%
+\begin{equation}
+\begin{split}
+\alpha &= \frac{R_{\rm SNS}}{R_{\rm DCR}}\\
+C_1 &= 100\text{nF}\\
+R_1 &= \frac{L}{\alpha R_{\rm DCR}C_1}\\
+R_2 &= R_1\cdot\frac{\alpha}{(1-\alpha)}
+\end{split}
+\end{equation}
+%
+where $C_1$ is arbitrarily selected. Table~\ref{tab:LTC3851A_ex3_dcr_sensing}
+shows the components required to implement an effective current-sense
+value of 2.0m$\Omega$ as used in the original supply design, and the component
+values needed for an effective current-sense resistance of 1.5m$\Omega$.
+The resistance values in the table have been converted to the
+nearest 1-percent values. 
+
+\begin{table}[t]
+\caption{LTC3851A 12V to 1.5V@15A supply inductor DCR current-sense components.}
+\label{tab:LTC3851A_ex3_dcr_sensing}
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+\rule{0cm}{4mm}Parameter or & \multicolumn{2}{c|}{Nominal Sense Resistance} \\
+\cline{2-3}
+\rule{0cm}{4mm}Component    & $2.0\text{m}\Omega$ & $1.5\text{m}\Omega$ \\
+\hline\hline
+         &\hspace {20mm} &\hspace {20mm}\\
+$\alpha$ & 0.769         & 0.577         \\
+$C_1$    & 100nF         & 100nF         \\
+$R_1$    & 2.37k$\Omega$ & 3.16k$\Omega$ \\
+$R_2$    & 7.87k$\Omega$ & 4.32k$\Omega$ \\
+&&\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+Figures~\ref{fig:LTC3851A_ex3_transient_response} 
+and~\ref{fig:LTC3851A_ex3_bode_response} show the transient and Bode
+response for the $R_{\rm SNS} = 2.0\text{m}\Omega$ design.
+A comparison between the transient responses in
+Figures~\ref{fig:LTC3851A_ex2_transient_response} 
+and~\ref{fig:LTC3851A_ex3_transient_response} 
+shows the transient responses are virtually indistinguishable,
+i.e., DCR current-sensing performs identically to resistive
+current-sensing.
+A comparison between the Bode responses in
+Figures~\ref{fig:LTC3851A_ex2_bode_response} 
+and~\ref{fig:LTC3851A_ex3_bode_response} shows that the
+control-to-output response differs in amplitude and phase 
+at low-frequencies. The DCR sensing design has higher gain near 
+DC, which will result in better output regulation.
+
+Figure~\ref{fig:LTC3851A_ex4_transient_response} 
+and~\ref{fig:LTC3851A_ex4_bode_response} show the transient and Bode
+response for the $R_{\rm SNS} = 1.5\text{m}\Omega$ design.
+A comparison between the transient responses in
+Figures~\ref{fig:LTC3851A_ex3_transient_response} 
+and~\ref{fig:LTC3851A_ex4_transient_response} shows a slightly
+faster transient in the $R_{\rm SNS} = 1.5\text{m}\Omega$ design,
+due to a slight increase in the open-loop cross-over frequency.
+A comparison between the Bode responses in
+Figures~\ref{fig:LTC3851A_ex3_bode_response} 
+and~\ref{fig:LTC3851A_ex4_bode_response} shows how the
+control-to-output response shifts up slightly in the
+$1.5\text{m}\Omega$ design.
+
+The $R_{\rm SNS} = 1.5\text{m}\Omega$ design still does not meet
+the output voltage regulation specification.
+The compensation network used to produce the transient responses in
+Figures~\ref{fig:LTC3851A_ex2_transient_response},
+~\ref{fig:LTC3851A_ex3_transient_response},
+and~\ref{fig:LTC3851A_ex4_transient_response}
+was designed so that the compensation gain at the switching-frequency
+was 0dB. This feature can be seen in the Bode responses in
+Figures~\ref{fig:LTC3851A_ex2_bode_response}(a),
+~\ref{fig:LTC3851A_ex3_bode_response}(a),
+and~\ref{fig:LTC3851A_ex4_bode_response}(a).
+Since the output voltage ripple is low (due to the use of the
+additional ceramic output capacitor), this requirement can be
+relaxed, allowing the open-loop bandwidth to be increased.
+Figures~\ref{fig:LTC3851A_ex5_transient_response}
+and~\ref{fig:LTC3851A_ex5_bode_response} show the transient
+and Bode response for a compensation network design that
+allows gain at the switching frequency (see 
+Table~\ref{fig:LTC3851A_ex1_compensation} design \#5 for the
+component values). The transient response
+now meets the output voltage regulation requirement.
+
+Figures~\ref{fig:LTC3851A_ex6_transient_response}
+and~\ref{fig:LTC3851A_ex6_bode_response} show the transient
+and Bode response for design \#6, the {\em final} supply design.
+Table~\ref{fig:LTC3851A_ex1_compensation} shows that relative to
+design \#5, the value for $C_1$ was increased to 2700pF,
+causing the compensation zero to move to lower frequency.
+This change was made to show that it was the {\em increase
+in open-loop cross-over frequency} that led to the design
+meeting the output voltage regulation specification.
+The location of the low-frequency zero determines the responsiveness
+of the controller after the initial transient. You can see
+the effect of moving the zero by comparing the transient
+responses in Figures~\ref{fig:LTC3851A_ex5_transient_response}
+and~\ref{fig:LTC3851A_ex6_transient_response}; note how the
+time taken for the output voltage to settle back to the nominal
+output voltage takes longer in design \#6 than in design \#5.
+Moving the zero to lower frequency provides additional phase
+margin, so the transient response of the compensation voltage
+and output current in 
+Figure~\ref{fig:LTC3851A_ex6_transient_response}
+have virtually no ringing.
+
+The 1ms transient responses shown in the figures in this section simulate
+very quickly in LTspice ($\sim$1 minute). The Bode responses are
+constructed from multiple transient simulation runs; each of the 19 
+points in the Bode plot is a transient simulation of 10 periods of the
+sinusoid stimulus or 1ms, whichever time is greater. The lowest frequencies
+of 100Hz and 300Hz dominate the simulation time.
+The typical run time of the Bode analysis on an Intel Core i7 Q820 
+1.73GHz quad-core machine with 16GB of RAM was in excess of 4 hours,
+i.e., the Bode plots for the 6 designs required over 24 hours of 
+simulation time. The Bode plots are however critical to the 
+{\em design} of the compensation network, so the simulation time
+cannot be avoided (just try to avoid too many iterations!).
+
+The subtle changes in the transient and Bode figures is best
+viewed using the electronic version of this document. The figures
+have all been scaled and located on the page identically, so that
+you can see the change in response when changing pages.
+
+% -----------------------------------------------------------------
+% Transient response (Example#3)
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTC3851A_ex3_transient_response.pdf}
+  \end{center}
+  \caption{LTC3851A 12V to 1.5V@15A supply transient response for design \#3
+  (inductor DCR sensing, $R_{\rm SNS} = 2.0\text{m}\Omega$).
+  The response is virtually indistinguishable from the sense resistor
+  version in Figure~\ref{fig:LTC3851A_ex2_transient_response}.\newline}
+  \label{fig:LTC3851A_ex3_transient_response}
+\end{figure}
+
+% -----------------------------------------------------------------
+% Transient response (Example#4)
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTC3851A_ex4_transient_response.pdf}
+  \end{center}
+  \caption{LTC3851A 12V to 1.5V@15A supply transient response for design \#4
+  (inductor DCR sensing, $R_{\rm SNS} = 1.5\text{m}\Omega$).
+  The smaller effective current-sense resistance reduces the response
+  of {\tt V(comp)}, relative to that in
+  Figure~\ref{fig:LTC3851A_ex3_transient_response}. The transient response
+  is now slightly faster due to the increase in open-loop bandwidth,
+  however, the transient extrema still exceed the specification.}
+  \label{fig:LTC3851A_ex4_transient_response}
+\end{figure}
+
+% -----------------------------------------------------------------
+% Transient response (Example#5)
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTC3851A_ex5_transient_response.pdf}
+  \end{center}
+  \caption{LTC3851A 12V to 1.5V@15A supply transient response for design \#5
+  (inductor DCR sensing, $R_{\rm SNS} = 1.5\text{m}\Omega$, with modified
+   compensation network). The modified compensation network moves the
+   low frequency zero in the compensation response higher, and the
+   cross-over frequency higher. The transient response now meets
+   the output voltage regulation specification.}
+  \label{fig:LTC3851A_ex5_transient_response}
+\end{figure}
+
+% -----------------------------------------------------------------
+% Transient response (Example#6)
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=0.87\textwidth]
+    {figures/LTC3851A_ex6_transient_response.pdf}
+  \end{center}
+  \caption{LTC3851A 12V to 1.5V@15A supply transient response for design \#6
+  (the {\em final} design). The zero in the compensation network was moved
+   lower, resulting in a slightly longer settling time after each transient,
+   but less ringing (more phase-margin), while still meeting the output voltage 
+   regulation specification.}
+  \label{fig:LTC3851A_ex6_transient_response}
+\end{figure}
+
+\clearpage
+% -----------------------------------------------------------------
+% Bode response (Example#3)
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,190)(0,0)
+    \put(15,100){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3851A_ex3_bode_response_mag.pdf}}
+    \put(15,4){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3851A_ex3_bode_response_phase.pdf}}
+    \put(75,  97){(a)}
+    \put(75,   0){(b)}
+  \end{picture}
+  \caption{LTC3851A 12V to 1.5V@15A supply Bode response for design \#3
+  (inductor DCR sensing, $R_{\rm SNS} = 2.0\text{m}\Omega$);
+  (a) magnitude, and (b) phase.
+  The open-loop gain has a cross-over frequency of 43kHz with
+  48-degrees of phase margin.\newline\newline}
+  \label{fig:LTC3851A_ex3_bode_response}
+\end{figure}
+
+\clearpage
+% -----------------------------------------------------------------
+% Bode response (Example#4)
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,190)(0,0)
+    \put(15,100){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3851A_ex4_bode_response_mag.pdf}}
+    \put(15,4){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3851A_ex4_bode_response_phase.pdf}}
+    \put(75,  97){(a)}
+    \put(75,   0){(b)}
+  \end{picture}
+  \caption{LTC3851A 12V to 1.5V@15A supply Bode response for design \#4
+  (inductor DCR sensing, $R_{\rm SNS} = 1.5\text{m}\Omega$);
+  (a) magnitude, and (b) phase.
+  The open-loop gain has a cross-over frequency of 55kHz with
+  49-degrees of phase margin.\newline\newline}
+  \label{fig:LTC3851A_ex4_bode_response}
+\end{figure}
+
+\clearpage
+% -----------------------------------------------------------------
+% Bode response (Example#5)
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,190)(0,0)
+    \put(15,100){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3851A_ex5_bode_response_mag.pdf}}
+    \put(15,4){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3851A_ex5_bode_response_phase.pdf}}
+    \put(75,  97){(a)}
+    \put(75,   0){(b)}
+  \end{picture}
+  \caption{LTC3851A 12V to 1.5V@15A supply Bode response for design \#5
+  (inductor DCR sensing, $R_{\rm SNS} = 1.5\text{m}\Omega$, compensation
+   gain at the switching-frequency);
+  (a) magnitude, and (b) phase.
+  The open-loop gain has a cross-over frequency of 71kHz with
+  56-degrees of phase margin.\newline\newline}
+  \label{fig:LTC3851A_ex5_bode_response}
+\end{figure}
+
+\clearpage
+% -----------------------------------------------------------------
+% Bode response (Example#6)
+% -----------------------------------------------------------------
+%
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,190)(0,0)
+    \put(15,100){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3851A_ex6_bode_response_mag.pdf}}
+    \put(15,4){
+    \includegraphics[width=0.75\textwidth]
+    {figures/LTC3851A_ex6_bode_response_phase.pdf}}
+    \put(75,  97){(a)}
+    \put(75,   0){(b)}
+  \end{picture}
+  \caption{LTC3851A 12V to 1.5V@15A supply Bode response for design \#6
+  (inductor DCR sensing, $R_{\rm SNS} = 1.5\text{m}\Omega$, compensation
+   gain at the switching-frequency, compensation zero moved to $\sim$10kHz);
+  (a) magnitude, and (b) phase.
+  The open-loop gain has a cross-over frequency of 76kHz with
+  72-degrees of phase margin.\newline\newline}
+  \label{fig:LTC3851A_ex6_bode_response}
+\end{figure}
+
+\clearpage
+% -----------------------------------------------------------------
+\subsubsection{Review and Discussion}
+% -----------------------------------------------------------------
+
+\noindent{\bf TODO}:
+\begin{itemize}
+\item What other design changes could be looked at? Go back to
+Rdcr = 2.0mOhm, so that the compensation voltage was close to
+full-scale, and then redo the compensation components to have
+a high cross-over, with say 6dB of gain at the switching frequency. 
+\item Sense resistor versus inductor DCR sensing
+\item NTC inductor temperature compensation.
+\item Review the power dissipation in the MOSFETs.
+\item Can I get an efficiency report?
+\item Add a comment about output loads based on current sinks rather
+than resistive loads, per the comments in~\cite{Linear_DC247_1999}
+\item Find ESR of ceramic caps and add a couple on the output.
+\end{itemize}
+
