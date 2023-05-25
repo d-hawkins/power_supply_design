@@ -1,0 +1,291 @@
+\documentclass[10pt,twoside]{article}
+
+% Math symbols
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% Headers/Footers
+\usepackage{fancyhdr}
+
+% Colors
+\usepackage[usenames,dvipsnames]{color}
+
+% Importing and manipulating graphics
+\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage{lscape}
+
+% Misc packages
+\usepackage{verbatim}
+\usepackage{dcolumn}
+\usepackage{ifpdf}
+\usepackage{enumerate}
+
+% PDF Bookmarks and hyperref stuff
+\usepackage[
+  bookmarks=true,
+  bookmarksnumbered=true,
+  colorlinks=true,
+  filecolor=blue,
+  linkcolor=blue,
+  urlcolor=blue,
+  hyperfootnotes=true
+  citecolor=blue
+]{hyperref}
+
+% Improved hyperlinking to figures
+% (include after hyperref)
+\usepackage[all]{hypcap}
+
+% Improved citation handling
+% (include after the hyperref stuff)
+\usepackage{cite}
+
+% Pretty-print code
+\usepackage{listings}
+
+% -----------------------------------------------------------------
+% Hyper-references
+% -----------------------------------------------------------------
+%
+% This page has lots of good advice on hyper-references, including
+% the use of the hypcap package and \phantomsection for generating
+% labels to text.
+%
+% http://en.wikibooks.org/wiki/LaTeX/Labels_and_Cross-referencing
+%
+% -----------------------------------------------------------------
+% Setup the margins
+% -----------------------------------------------------------------
+% Footer Template
+
+% Set left margin - The default is 1 inch, so the following
+% command sets a 1.25-inch left margin.
+\setlength{\oddsidemargin}{0.25in}
+\setlength{\evensidemargin}{0.25in}
+
+% Set width of the text - What is left will be the right
+% margin. In this case, right margin is
+% 8.5in - 1.25in - 6in = 1.25in.
+\setlength{\textwidth}{6in}
+
+% Set top margin - The default is 1 inch, so the following
+% command sets a 0.75-inch top margin.
+%\setlength{\topmargin}{-0.25in}
+
+% Set height of the header
+\setlength{\headheight}{0.3in}
+
+% Set vertical distance between the header and the text
+\setlength{\headsep}{0.2in}
+
+% Set height of the text
+\setlength{\textheight}{8.5in}
+
+% Set vertical distance between the text and the
+% bottom of footer
+\setlength{\footskip}{0.4in}
+
+% -----------------------------------------------------------------
+% Allow floats to take up more space on a page.
+% -----------------------------------------------------------------
+
+% see page 142 of the Companion for this stuff and the
+% documentation for the fancyhdr package
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.95}
+% dont make this too small
+\renewcommand{\floatpagefraction}{0.35}
+\setcounter{totalnumber}{5}
+
+% -----------------------------------------------------------------
+% Abbreviated symbols
+% -----------------------------------------------------------------
+\newcommand{\sinc}{\ensuremath{\,\text{sinc}}}
+\newcommand{\rect}{\ensuremath{\,\text{rect}}}
+
+% =================================================================
+% The document starts here
+% =================================================================
+%
+\begin{document}
+\title{Linear Technology $\mu$Module Feed-forward Capacitor Placement}
+\author{D. W. Hawkins (dwh@ovro.caltech.edu)}
+\date{\today}
+%\date{June 13, 2012}
+\maketitle
+
+% No header/footer on the first page
+\thispagestyle{empty}
+
+%\tableofcontents
+
+% start the intro on an odd page
+%\cleardoublepage
+%\clearpage
+
+% Set up the header/footer
+\pagestyle{fancy}
+\lhead{$\mu$Module Feed-forward Capacitor Placement}
+\chead{}
+\rhead{\today}
+\lfoot{}
+\cfoot{}
+\rfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Set the listings package language to Tcl
+\lstset{language=Tcl}
+
+% =================================================================
+%\section{Discussion}
+% =================================================================
+
+The Linear Technology $\mu$Module series of integrated switch-mode
+power supplies contains an incorrect recommendation for the
+placement of the feed-forward capacitor in the voltage feedback
+loop. Figure~\ref{fig:an76_control_loop} shows the control
+loop for a current-mode controlled switch-mode power supply
+(Figure 1 of Linear Technology
+\href{http://cds.linear.com/docs/Application%20Note/an76.pdf}
+{Application Note 76}).
+
+Figure~\ref{fig:LTM4601_diagram} shows a block diagram of the
+LTM4601/LTM4601-1 $\mu$Module (Figure 1 on page 9 of the
+\href{http://cds.linear.com/docs/Datasheet/4601fc.pdf}
+{LTM4601} data sheet).
+Figure~\ref{fig:LTM4601_datasheet_circuits} shows two recommended
+circuits from the LT4601 data sheet
+(Figures 16 and 17 on page 22 of the
+\href{http://cds.linear.com/docs/Datasheet/4601fc.pdf}
+{LTM4601} data sheet).
+
+Figure~\ref{fig:LTM4601_datasheet_circuits}(a) shows the
+LTM4601-1; this part does not have an integrated
+remote {\em differential voltage sense amplifier}.
+Figure~\ref{fig:LTM4601_datasheet_circuits}(b) shows the
+LTM4601; this part has an integrated remote
+{\em differential voltage sense amplifier}.
+The placement of the feed-forward capacitor in 
+Figure~\ref{fig:LTM4601_datasheet_circuits}(a) is correct,
+however, the placement of the feed-forward capacitor in 
+Figure~\ref{fig:LTM4601_datasheet_circuits}(b) is
+\textcolor{red}{\bf incorrect}. 
+%
+Figure~\ref{fig:LTM4601_equivalent_circuits_a} redraws the
+circuits in Figure~\ref{fig:LTM4601_datasheet_circuits}
+to help show why the placement of the feed-forward
+capacitor in Figure~\ref{fig:LTM4601_datasheet_circuits}(b) is
+\textcolor{red}{\bf incorrect}. 
+Figure~\ref{fig:LTM4601_equivalent_circuits_b}
+shows the correct placement.
+
+The feed-forward capacitor {\em must} be placed on the
+{\bf output} of the {\em differential voltage sense amplifier}
+as shown in Figure~\ref{fig:LTM4601_equivalent_circuits_b},
+not {\bf across} the {\em differential voltage sense amplifier}
+as shown in Figure~\ref{fig:LTM4601_datasheet_circuits}(b). 
+%
+The placement in
+Figure~\ref{fig:LTM4601_datasheet_circuits}(b)
+defeats the operation of the
+{\em differential voltage sense amplifier}; in a 
+real-world circuit with common-mode noise on voltage sense
+traces, this placement will couple common-mode noise from
+the {\em differential voltage sense amplifier}
+input $V_{\rm OSNS+}$, directly into the error amplifier
+input $V_{\rm FB}$. This has the potential for causing
+loop instability.
+If the feed-forward capacitor is placed on the {\bf output}
+of the {\em differential voltage sense amplifier},
+as shown in Figure~\ref{fig:LTM4601_equivalent_circuits_b},
+then the {\em differential voltage sense amplifier}
+does its job and rejects common-mode noise, resulting 
+in a clean signal at the error amplifier input.
+
+\vskip5mm
+{\bf All data sheets for Linear Technology $\mu$Modules with 
+remote sensing of the output voltage need to be updated to 
+show the correct placement of the feed-forward capacitor.}
+
+
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=\textwidth]
+    {figures/an76_control_loop.pdf}
+  \end{center}
+  \caption{Switch-mode power supply control loop (from AN76).
+  The feed-forward capacitor $C_1$ is highlighted in red.}
+  \label{fig:an76_control_loop}
+\end{figure}
+
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=\textwidth]
+    {figures/ltm4601_diagram.pdf}
+  \end{center}
+  \caption{LTM4601/LTM4601-1 block diagram.}
+  \label{fig:LTM4601_diagram}
+\end{figure}
+
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,205)(0,0)
+    \put(10,0){
+    \includegraphics[width=\textwidth]
+    {figures/ltm4601_datasheet_circuits.pdf}}
+    \put(40,107){(a) LTM4601-1 (no differential voltage sense amplifier).}
+    \put(30,0){(b) LTM4601 with \textcolor{red}{incorrect} $C_{\rm FF}$ placement
+    per the data sheet.}
+  \end{picture}
+  \caption{LTM4601/4601-1 data sheet circuits (Figures 16 and 17).}
+  \label{fig:LTM4601_datasheet_circuits}
+\end{figure}
+
+\setlength{\unitlength}{1mm}
+\begin{figure}[p]
+  \begin{picture}(155,205)(0,0)
+    \put(0,0){
+    \includegraphics[width=\textwidth]
+    {figures/ltm4601_equivalent_circuits_a.pdf}}
+    \put(40,107){(a) LTM4601-1 (no differential voltage sense amplifier).}
+    \put(30,0){(b) LTM4601 with \textcolor{red}{incorrect} $C_{\rm FF}$ placement
+    per the data sheet.}
+  \end{picture}
+  \caption{LTM4601/4601-1 circuits (redrawn).}
+  \label{fig:LTM4601_equivalent_circuits_a}
+\end{figure}
+
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics[width=\textwidth]
+    {figures/ltm4601_equivalent_circuits_b.pdf}
+  \end{center}
+  \caption{LTM4601 circuit with corrected feed-forward capacitor placement.}
+  \label{fig:LTM4601_equivalent_circuits_b}
+\end{figure}
+
+\clearpage
+% -----------------------------------------------------------------
+% Do the bibliography
+% -----------------------------------------------------------------
+%Note, you can't have spaces in the list of bibliography files
+%
+\bibliography{refs}
+\bibliographystyle{plain}
+
+% -----------------------------------------------------------------
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
