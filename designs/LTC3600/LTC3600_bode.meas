@@ -1,0 +1,41 @@
+* -----------------------------------------------------------------
+* LTC3600_bode.meas
+*
+* 9/20/2012 D. W. Hawkins (dwh@ovro.caltech.edu)
+*
+* LTC3600 power supply frequency response measurement.
+*
+* The circuit contains four signal measurement points;
+*
+*  A = sinusoid injection into the feedback path
+*  B = sinusoid injection on the output
+*  C = compensation node (ITH pin)
+*  D = switching node
+*
+* These signal measurements are processed to determine the
+* the gains around the control loop at each frequency step.
+* MATLAB is then used to process the log file to plot the
+* Bode response.
+*
+* -----------------------------------------------------------------
+.option option_angle=degrees
+.measure Aavg avg V(a)
+.measure Bavg avg V(b)
+.measure Cavg avg V(c)
+.measure Davg avg V(d)
+.measure Are avg  (V(a)-Aavg)*cos(360*time*freq)
+.measure Aim avg -(V(a)-Aavg)*sin(360*time*freq)
+.measure Bre avg  (V(b)-Bavg)*cos(360*time*freq)
+.measure Bim avg -(V(b)-Bavg)*sin(360*time*freq)
+.measure Cre avg  (V(c)-Cavg)*cos(360*time*freq)
+.measure Cim avg -(V(c)-Cavg)*sin(360*time*freq)
+.measure Dre avg  (V(d)-Davg)*cos(360*time*freq)
+.measure Dim avg -(V(d)-Davg)*sin(360*time*freq)
+.measure Gain_dB param 20*log10(hypot(Bre,Bim) / hypot(Are,Aim))
+.measure Phase param mod(atan2(Bim, Bre) - atan2(Aim, Are)+180,360)-180
+.measure Kco_dB param 20*log10(hypot(Bre,Bim) / hypot(Cre,Cim))
+.measure Kco_Phase param mod(atan2(Bim, Bre) - atan2(Cim, Cre)+180,360)-180
+.measure Kcomp_dB param 20*log10(hypot(Cre,Cim) / hypot(Are,Aim))
+.measure Kcomp_Phase param mod(atan2(Cim, Cre) - atan2(Aim, Are)+180,360)-180
+.measure Kpwr_dB param 20*log10(hypot(Bre,Bim) / hypot(Dre,Dim))
+.measure Kpwr_Phase param mod(atan2(Bim, Bre) - atan2(Dim, Dre)+180,360)-180

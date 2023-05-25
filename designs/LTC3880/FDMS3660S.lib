@@ -1,0 +1,111 @@
+.SUBCKT FDMS3660S_Q1 2 1 3
+******************************************************************
+**      Fairchild Discrete Modeling Group                       **
+******************************************************************
+**      Website www.fairchildsemi.com\models                    **
+******************************************************************
+**      (C) Copyright 2010 Fairchild Semiconductor Corporation  **
+**                      All rights reserved                     **
+**                                                              **
+**                      FDMS3660S Spice model                   **
+**                    Revision RevA, February 6, 2012           **
+**                    Revision RevB, August 27, 2012            **
+******************************************************************
+** LTspice Modifications:                                       **
+**  * LEVEL=7 changed to LEVEL=8 (Bsim3 model)                  **
+**  * Rser=0 added to Lgate, Ldrain, Lsource                    **
+******************************************************************
+*Nom Temp 25 deg C
+Dbody 7 5 DbodyMOD 
+Dbreak 5 11 DbreakMOD 
+Lgate 1 9 0.853e-9 Rser=0
+Ldrain 2 5 0.004e-9 Rser=0
+Lsource 3 7 0.277e-9 Rser=0
+RLgate 1 9 8.53	
+RLdrain 2 5 0.04	
+RLsource 3 7 2.77	
+Rgate 9 6 0.6
+D_D1 100 5 D_SG_cap
+D_D2 100 101 D_SG_cap
+R_R1 101 7 1.33
+C_C1 6 101 73e-12
+.MODEL D_SG_cap D (IS=1e-9 n=1 RS=5e-3 CJO=1.17e-9 M=0.415 t_abs=25) 
+It 7 17 1
+Ebreak 11 7 17 7 32.6
+Rbreak 17 7 RbreakMOD 1 
+.MODEL RbreakMOD RES (TC1=0.6e-3 TC2=-0.85e-6)
+.MODEL DbodyMOD D (IS=3.0e-12 n=1.05 RS=2.6e-3 TRS1=6e-3 TRS2=1e-6 
++ CJO=0.35e-9 M=0.3 TT=3e-9 XTI=9)
+.MODEL DbreakMOD D (RS=30e-3 TRS1=1e-3 TRS2=1e-6 )
+Rsource 7a 7 0.797e-3
+Rdrain 5 16 RdrainMOD 3.0e-3
+.MODEL RdrainMOD RES (TC1=2.8e-3 TC2=6e-6)
+M_BSIM3 16 6 7a 7a Bsim3 W=2.90934875 L=0.8e-6 NRS=0 NRD=0
+.MODEL Bsim3 NMOS (LEVEL=8 VERSION=3.1 MOBMOD=3 CAPMOD=2 paramchk=1 NQSMOD=0
++ TOX=500e-10 
++ XJ=0.16e-6
++ NCH=1.58e17
++ U0=825 VSAT=500000 DROUT=1.2
++ DELTA=0.18 PSCBE2=0 RSH=0.797e-3
++ VTH0=2.02
++ VOFF=-0.1 NFACTOR=1.4
++ LINT=0.135e-6 DLC=0.135e-6 
++ CGSO=100e-12 CGSL=0 CGDO=1e-12 CGDL=180e-12
++ CJ=0 CF=0 CKAPPA=0.75
++ KT1=-1.55 KT2=0 UA1=10e-9
++ NJ=10)
+.ENDS 
+
+
+.SUBCKT FDMS3660S_Q2 2 1 3 
+* Nom Temp 25 deg C
+Dbody 7 5 DbodyMOD
+Dschottky 7 5 DSchottkyMOD
+Dbreak 5 11 DbreakMOD
+Lgate 1 9 0.853e-9 Rser=0
+Ldrain 2 5 0.004e-9 Rser=0
+Lsource 3 7 0.1e-9 Rser=0
+RLgate 1 9 8.53		
+RLdrain 2 5 0.04		
+RLsource 3 7 1
+Rgate 9 6 0.8
+* Shielded  Gate
+D_D1 100 5 D_SG_cap
+D_D2 100 101 D_SG_cap
+R_R1 101 7 1.02
+C_C1 6 101 396e-12
+.MODEL D_SG_cap D (IS=1e-9 n=1 RS=5e-3 CJO=3.1e-9 M=0.6 t_abs=25)
+It 7 17 1
+Ebreak 11 7 17 7 27
+Rbreak 17 7 RbreakMOD 1
+.MODEL RbreakMOD RES (TC1=0.6e-3 TC2=-1e-6)
+.MODEL DbodyMOD D (IS=12.46e-12 n=1 RS=0.943e-3 TRS1=2.5e-3 TRS2=1e-6
++ CJO=0.47e-9 M=0.35 TT=3e-9 XTI=1) ;CJO=1.4e-9
+.MODEL DSchottkyMOD D (IS=5.5e-6 n=1.05 RS=100e-3 TRS1=3e-3 TRS2=1e-6
++ CJO=0.47e-9 M=0.65 TT=3e-9 XTI=-18)
+.MODEL DbreakMOD D (RS=30e-3 TRS1=1e-3 TRS2=1e-6 )
+Rsource 77 7 0.211e-3
+Rdrain 5 16 RdrainMOD 0.976e-3
+.MODEL RdrainMOD RES (TC1=3.8e-3 TC2=12e-6)
+M_BSIM3 16 6 77 77 Bsim3 W=7.62 L=0.467e-6 NRS=0 NRD=0
+.MODEL Bsim3 NMOS (LEVEL=8 VERSION=3.1 MOBMOD=3 CAPMOD=2 paramchk=1 NQSMOD=0
+*Process Parameters
++ TOX=300e-10 ;Oxide thickness
++ XJ=0.2e-6 ;Channel depth
++ NCH=2.1e17 ;Channel concentration
+*Channel Current
++ U0=600 VSAT=500000 DROUT=1.2
++ DELTA=0.18 PSCBE2=0 RSH=0.211e-3
+*Threshold voltage
++ VTH0=0.7
+*Sub-threshold characteristics
++ VOFF=-0.1 NFACTOR=1.1
+*Junction diodes and Capacitance
++ LINT=0.098e-6 DLC=0.098e-6
++ CGSO=222e-12 CGSL=0 CGDO=2.5e-12 CGDL=190e-12 ;CGSO=260e-12
++ CJ=0 CF=0 CKAPPA=0.5
+* Temperature parameters
++ KT1=-0.8 KT2=0 UA1=3e-9
++ NJ=10)
+.ENDS
+

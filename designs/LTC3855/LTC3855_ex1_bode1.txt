@@ -1,0 +1,257 @@
+Circuit: * C:\dwh\dwh\doc\power_supply_design\designs\LTC3855\LTC3855_ex1_bode.asc
+
+DWH: Results for the coarse frequency sweep, i.e., 
+     .step param freq list  1k 3k 10k 30k 100k 300k 1Meg
+     4584s = 1 hour 16 minutes (11 minutes per step)
+
+WARNING: Node U1:N014 is floating.
+
+Direct Newton iteration failed to find .op point.  (Use ".option noopiter" to skip.)
+Starting Gmin stepping
+Gmin = 10
+Gmin = 1.07374
+Gmin = 0.115292
+Gmin = 0.0123794
+Gmin = 0.00132923
+Gmin = 0.000142725
+Gmin = 1.5325e-005
+Gmin = 1.6455e-006
+Gmin = 1.76685e-007
+Gmin = 1.89714e-008
+Gmin = 2.03704e-009
+Gmin = 2.18725e-010
+Gmin = 2.34854e-011
+Gmin = 2.52173e-012
+Gmin = 2.70769e-013
+Gmin = 0
+Gmin stepping succeeded in finding the operating point.
+
+.step freq=1000
+.step freq=3000
+.step freq=10000
+.step freq=30000
+.step freq=100000
+.step freq=300000
+.step freq=1e+006
+
+
+Measurement: aavg
+  step	AVG(v(a))	FROM	TO
+     1	0.951591	0	0.01
+     2	0.951591	0	0.00333333
+     3	0.95159	0	0.001
+     4	0.951591	0	0.001
+     5	0.95159	0	0.001
+     6	0.951588	0	0.001
+     7	0.95159	0	0.001
+
+Measurement: bavg
+  step	AVG(v(b))	FROM	TO
+     1	0.951591	0	0.01
+     2	0.951591	0	0.00333333
+     3	0.95159	0	0.001
+     4	0.951591	0	0.001
+     5	0.95159	0	0.001
+     6	0.951588	0	0.001
+     7	0.95159	0	0.001
+
+Measurement: cavg
+  step	AVG(v(c))	FROM	TO
+     1	1.22015	0	0.01
+     2	1.22024	0	0.00333333
+     3	1.22018	0	0.001
+     4	1.22014	0	0.001
+     5	1.22085	0	0.001
+     6	1.22325	0	0.001
+     7	1.21996	0	0.001
+
+Measurement: davg
+  step	AVG(v(d))	FROM	TO
+     1	0.984774	0	0.01
+     2	0.984915	0	0.00333333
+     3	0.984785	0	0.001
+     4	0.985566	0	0.001
+     5	0.984677	0	0.001
+     6	0.984936	0	0.001
+     7	0.984976	0	0.001
+
+Measurement: are
+  step	AVG((v(a)-aavg)*cos(360*time*freq))	FROM	TO
+     1	6.34685e-005	0	0.01
+     2	0.000578998	0	0.00333333
+     3	0.000551881	0	0.001
+     4	0.00114011	0	0.001
+     5	0.00153158	0	0.001
+     6	0.000131096	0	0.001
+     7	1.20209e-005	0	0.001
+
+Measurement: aim
+  step	AVG(-(v(a)-aavg)*sin(360*time*freq))	FROM	TO
+     1	5.32775e-005	0	0.01
+     2	-0.00053506	0	0.00333333
+     3	0.000169193	0	0.001
+     4	-0.000653537	0	0.001
+     5	-0.00190539	0	0.001
+     6	-0.00316117	0	0.001
+     7	-0.00252738	0	0.001
+
+Measurement: bre
+  step	AVG((v(b)-bavg)*cos(360*time*freq))	FROM	TO
+     1	0.0147581	0	0.01
+     2	0.0243554	0	0.00333333
+     3	0.000551881	0	0.001
+     4	0.00114011	0	0.001
+     5	0.00153158	0	0.001
+     6	0.000131095	0	0.001
+     7	1.20201e-005	0	0.001
+
+Measurement: bim
+  step	AVG(-(v(b)-bavg)*sin(360*time*freq))	FROM	TO
+     1	0.0202787	0	0.01
+     2	-0.00826048	0	0.00333333
+     3	0.00266919	0	0.001
+     4	0.00184646	0	0.001
+     5	0.00059459	0	0.001
+     6	-0.00066131	0	0.001
+     7	-2.8957e-005	0	0.001
+
+Measurement: cre
+  step	AVG((v(c)-cavg)*cos(360*time*freq))	FROM	TO
+     1	-0.0197979	0	0.01
+     2	0.0330974	0	0.00333333
+     3	-0.026781	0	0.001
+     4	-0.01644	0	0.001
+     5	0.0229298	0	0.001
+     6	0.0245357	0	0.001
+     7	0.00608463	0	0.001
+
+Measurement: cim
+  step	AVG(-(v(c)-cavg)*sin(360*time*freq))	FROM	TO
+     1	0.0166942	0	0.01
+     2	0.0818513	0	0.00333333
+     3	0.0144277	0	0.001
+     4	0.0491345	0	0.001
+     5	0.0464117	0	0.001
+     6	0.00495935	0	0.001
+     7	0.000299241	0	0.001
+
+Measurement: dre
+  step	AVG((v(d)-davg)*cos(360*time*freq))	FROM	TO
+     1	0.0133403	0	0.01
+     2	0.0184157	0	0.00333333
+     3	-0.00525848	0	0.001
+     4	-0.0447283	0	0.001
+     5	-0.110896	0	0.001
+     6	0.195636	0	0.001
+     7	0.0430416	0	0.001
+
+Measurement: dim
+  step	AVG(-(v(d)-davg)*sin(360*time*freq))	FROM	TO
+     1	0.0203014	0	0.01
+     2	-0.00155903	0	0.00333333
+     3	-0.00468136	0	0.001
+     4	-0.00669043	0	0.001
+     5	0.113626	0	0.001
+     6	0.147775	0	0.001
+     7	0.0412483	0	0.001
+
+Measurement: gain_db
+  step	20*log10(hypot(bre,bim) / hypot(are,aim))
+     1	49.6192
+     2	30.2702
+     3	13.4824
+     4	4.35671
+     5	-3.45182
+     6	-13.4289
+     7	-38.128
+
+Measurement: phase
+  step	mod(atan2(bim, bre) - atan2(aim, are)+180,360)-180
+     1	13.943
+     2	24.0063
+     3	61.2739
+     4	88.1288
+     5	72.4244
+     6	8.83796
+     7	22.2709
+
+Measurement: kco_db
+  step	20*log10(hypot(bre,bim) / hypot(cre,cim))
+     1	-0.27829
+     2	-10.7134
+     3	-20.9538
+     4	-27.5591
+     5	-29.9686
+     6	-31.3944
+     7	-45.7697
+
+Measurement: kco_phase
+  step	mod(atan2(bim, bre) - atan2(cim, cre)+180,360)-180
+     1	-85.9072
+     2	-86.7187
+     3	-73.3692
+     4	-50.1933
+     5	-42.491
+     6	-90.2144
+     7	-70.2721
+
+Measurement: kcomp_db
+  step	20*log10(hypot(cre,cim) / hypot(are,aim))
+     1	49.8975
+     2	40.9836
+     3	34.4362
+     4	31.9158
+     5	26.5168
+     6	17.9654
+     7	7.64167
+
+Measurement: kcomp_phase
+  step	mod(atan2(cim, cre) - atan2(aim, are)+180,360)-180
+     1	99.8502
+     2	110.725
+     3	134.643
+     4	138.322
+     5	114.915
+     6	99.0524
+     7	92.543
+
+Measurement: kpwr_db
+  step	20*log10(hypot(bre,bim) / hypot(dre,dim))
+     1	0.277376
+     2	2.87001
+     3	-8.2425
+     4	-26.3782
+     5	-39.703
+     6	-51.214
+     7	-65.5817
+
+Measurement: kpwr_phase
+  step	mod(atan2(bim, bre) - atan2(dim, dre)+180,360)-180
+     1	-2.73635
+     2	-13.8961
+     3	-143.359
+     4	-130.201
+     5	-113.086
+     6	-115.853
+     7	-111.238
+
+
+Date: Thu Jun 21 15:28:17 2012
+Total elapsed time: 4583.624 seconds.
+
+tnom = 27
+temp = 27
+method = modified trap
+totiter = 5870567
+traniter = 5870162
+tranpoints = 1709696
+accept = 1235185
+rejected = 474511
+matrix size = 152
+fillins = 28
+solver = Normal
+Thread vector: 49.8/24.6[5] 21.0/10.2[5] 1.8/1.8[1] 1.2/1.4[1]  2592/500
+Matrix Compiler1: 6.54 KB object code size  6.2/2.9/[1.8]
+Matrix Compiler2: 9.46 KB object code size  3.4/4.8/[1.6]
+
+

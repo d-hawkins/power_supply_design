@@ -1,0 +1,109 @@
+Circuit: * C:\dwh\dwh\work\terasic_board\power\control_zone_smps\LTC3600_efficiency.asc
+
+WARNING: Node U1:N007 is floating.
+
+WARNING: Less than two connections to node NC_01.  This node is used by S:U1:10.
+Direct Newton iteration for .op point succeeded.
+.step iout=0.01
+.step iout=0.1
+.step iout=0.25
+.step iout=0.5
+.step iout=0.75
+.step iout=1
+.step iout=1.25
+.step iout=1.5
+.step iout=1.75
+
+
+Measurement: p_in
+  step	AVG(-v(in)*i(vin))	FROM	TO
+     1	0.0630213	0	0.001
+     2	0.28869	0	0.001
+     3	0.676594	0	0.001
+     4	1.33694	0	0.001
+     5	2.00588	0	0.001
+     6	2.69121	0	0.001
+     7	3.39326	0	0.001
+     8	4.11008	0	0.001
+     9	4.84433	0	0.001
+
+Measurement: p_out
+  step	AVG(v(out)*i(rload))	FROM	TO
+     1	0.0249492	0	0.001
+     2	0.24946	0	0.001
+     3	0.623512	0	0.001
+     4	1.24658	0	0.001
+     5	1.8692	0	0.001
+     6	2.49139	0	0.001
+     7	3.11312	0	0.001
+     8	3.73443	0	0.001
+     9	4.35528	0	0.001
+
+Measurement: eff
+  step	p_out/p_in*100
+     1	39.5885
+     2	86.4111
+     3	92.1545
+     4	93.2407
+     5	93.186
+     6	92.5748
+     7	91.7443
+     8	90.8602
+     9	89.9047
+
+Measurement: p_l
+  step	AVG(v(sw,out)*i(l))	FROM	TO
+     1	0.000662316	0	0.001
+     2	0.000999194	0	0.001
+     3	0.00248904	0	0.001
+     4	0.00811134	0	0.001
+     5	0.0175585	0	0.001
+     6	0.0304796	0	0.001
+     7	0.0472598	0	0.001
+     8	0.0680336	0	0.001
+     9	0.092078	0	0.001
+
+Measurement: p_cout
+  step	AVG(v(out)*i(cout))	FROM	TO
+     1	0.000142404	0	0.001
+     2	0.000136952	0	0.001
+     3	0.000140476	0	0.001
+     4	0.000166599	0	0.001
+     5	0.000169701	0	0.001
+     6	0.000197582	0	0.001
+     7	0.000208991	0	0.001
+     8	0.000230081	0	0.001
+     9	0.000245415	0	0.001
+
+Measurement: p_u1
+  step	AVG(v(vset)*ix(u1:iset)+v(vcc)*ix(u1:ith)+v(vcc)*ix(u1:rt)+v(vcc)*ix(u1:pgfb)+v(in)*ix(u1:run)+v(vcc)*ix(u1:mode/sync)+v(sw)*ix(u1:sw)+v(in)*ix(u1:vin)+v(boost)*ix(u1:boost)+v(vcc)*ix(u1:intvcc)+v(out)*ix(u1:vout))	FROM	TO
+     1	0.0371799	0	0.001
+     2	0.0380917	0	0.001
+     3	0.0506917	0	0.001
+     4	0.0822509	0	0.001
+     5	0.119546	0	0.001
+     6	0.169528	0	0.001
+     7	0.232965	0	0.001
+     8	0.30803	0	0.001
+     9	0.396966	0	0.001
+
+
+Date: Thu Sep 20 13:03:47 2012
+Total elapsed time: 1078.110 seconds.
+
+tnom = 27
+temp = 27
+method = modified trap
+totiter = 4775178
+traniter = 4775171
+tranpoints = 1472109
+accept = 1225989
+rejected = 246120
+matrix size = 65
+fillins = 3
+solver = Normal
+Thread vector: 20.7/16.0[2] 14.7/11.5[2] 6.3/5.0[2] 2.7/3.5[1]  2592/500
+Matrix Compiler1: 1.72 KB object code size  4.6/4.6/[4.3]
+Matrix Compiler2: 3.53 KB object code size  4.4/5.1/[3.2]
+
+
